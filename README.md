@@ -1,6 +1,12 @@
 ## openstack-flex-lab
 I am using opentofu but I call it terraform alot still :/
 
+### requirements
+
+- Install opentofu
+- Install openstackclient
+- Configure $HOME/.config/openstack/clouds.yaml with credentials
+
 ### initialize tofu
 ```bash
 tofu init --upgrade
