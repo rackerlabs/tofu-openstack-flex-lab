@@ -148,12 +148,6 @@ resource "openstack_networking_subnet_v2" "openstack-flex-subnet-internal" {
   enable_dhcp = false
 }
 
-# # Create internal router interface
-# resource "openstack_networking_router_interface_v2" "openstack-flex-router-interface-internal" {
-#   router_id = openstack_networking_router_v2.openstack-flex-router.id
-#   subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet-internal.id
-# }
-
 ## Compute Network
 # Create compute network
 resource "openstack_networking_network_v2" "openstack-flex-compute" {
@@ -171,12 +165,6 @@ resource "openstack_networking_subnet_v2" "openstack-flex-subnet-compute" {
   ip_version = 4
   enable_dhcp = false
 }
-
-# # Create compute router interface
-# resource "openstack_networking_router_interface_v2" "openstack-flex-router-compute-internal" {
-#   router_id = openstack_networking_router_v2.openstack-flex-router.id
-#   subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet-compute.id
-# }
 
 resource "openstack_compute_keypair_v2" "mykey" {
   name       = "mykey"
@@ -248,33 +236,21 @@ resource "openstack_compute_instance_v2" "storage-node" {
   }
 }
 
-# resource "openstack_blockstorage_volume_v3" "storage-volume-1" {
-#   # for_each = openstack_compute_instance_v2.storage-node
-#   for_each = { for instance in openstack_compute_instance_v2.storage-node : instance.name => instance }
-#   name      = format("%s-volume-1", each.value.name)
-#   size = "50"
-# }
+# Create storage volumes and attach to storage nodes
+module "storage-volumes" {
+  source = "./modules/volumes"
+  for_each = { for item in openstack_compute_instance_v2.storage-node : item.name => item.id }
+  instance-name = each.key
+  instance-uuid = each.value
+}
 
-# resource "openstack_blockstorage_volume_v3" "storage-volume-2" {
-#   # for_each = openstack_compute_instance_v2.storage-node
-#   for_each = { for instance in openstack_compute_instance_v2.storage-node : instance.name => instance }
-#   name      = format("%s-volume-1", each.value.name)
-#   size = "50"
-# }
-
-# resource "openstack_blockstorage_volume_v3" "storage-volume-3" {
-#   for_each = { for instance in openstack_compute_instance_v2.storage-node : instance.name => instance }
-#   name      = format("%s-volume-1", each.value.name)
-#   size = "50"
-# }
-
+# Create bastion node
 resource "openstack_compute_instance_v2" "bastion" {
   name      = "openstack-flex-launcher"
   image_name  = var.bastion_image
   flavor_name = var.bastion_flavor
   key_pair  = openstack_compute_keypair_v2.mykey.name
   network {
-    # name = openstack_networking_network_v2.openstack-flex.name
     port = openstack_networking_port_v2.bastion.id
   }
   metadata = {
@@ -301,24 +277,6 @@ resource "openstack_networking_floatingip_v2" "bastion" {
   port_id = openstack_networking_port_v2.bastion.id
 }
 
-# resource "openstack_blockstorage_volume_v3" "ceph_storage-node5" {
-#   count = 3
-#   name      = format("openstack-flex-node-5-volume-%s", count.index)
-#   size = "20"
-# }
-
-# resource "openstack_blockstorage_volume_v3" "ceph_storage-node6" {
-#   count = 3
-#   name      = format("openstack-flex-node-6-volume-%s", count.index)
-#   size = "20"
-# }
-
-# resource "openstack_blockstorage_volume_v3" "ceph_storage-node7" {
-#   count = 3
-#   name      = format("openstack-flex-node-7-volume-%s", count.index)
-#   size = "20"
-# }
-
-# resource "openstack_compute_volume_attach_v2" "ceph_attachments" {
-
-# }
+output "floating_ip" {
+  value = openstack_networking_floatingip_v2.bastion.address
+}
