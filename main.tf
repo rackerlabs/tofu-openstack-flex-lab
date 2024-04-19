@@ -169,6 +169,10 @@ module "storage-volumes" {
 }
 
 # Create bastion node
+
+data "template_file" "cloudinit" {
+  template = file("./scripts/cloudinit/configure.yaml")
+}
 resource "openstack_compute_instance_v2" "bastion" {
   name      = "openstack-flex-launcher"
   image_name  = var.bastion_image
@@ -181,6 +185,7 @@ resource "openstack_compute_instance_v2" "bastion" {
     hostname = "openstack-flex-node-launcher"
     group = "openstack-flex"
   }
+  user_data = data.template_file.cloudinit.rendered
 }
 
 # Create network port bastion
