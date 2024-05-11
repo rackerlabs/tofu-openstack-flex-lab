@@ -21,7 +21,7 @@ variable "instance-name" {
 resource "openstack_blockstorage_volume_v3" "volumes" {
   count = 3
   name      = format("%s-volume-%d", var.instance-name, count.index + 1)
-  size = "50"
+  size = "120"
 }
 
 resource "openstack_compute_volume_attach_v2" "storage_attachments" {

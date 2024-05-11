@@ -13,6 +13,7 @@ required_version = ">= 0.14.0"
 # Configure the OpenStack Provider
 provider "openstack" {
     cloud = var.cloud
+    insecure = true
 }
 
 #### Network Configuration
@@ -95,8 +96,30 @@ resource "openstack_compute_keypair_v2" "mykey" {
   public_key = file("${var.ssh_public_key_path}")
 }
 
-# Create controller nodes
+# Create kubernetes nodes
 resource "openstack_compute_instance_v2" "k8s-controller" {
+  count     = var.kubernetes_count
+  name      = format("kubernetes%02d", count.index + 1)
+  image_name = var.kubernetes_image
+  flavor_name = var.kubernetes_flavor
+  key_pair  = openstack_compute_keypair_v2.mykey.name
+  network {
+    name = openstack_networking_network_v2.openstack-flex.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-internal.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  metadata = {
+    hostname = format("kubernetes%02d", count.index + 1)
+    group = "openstack-flex"
+  }
+}
+
+# Create controller nodes
+resource "openstack_compute_instance_v2" "openstack-controller" {
   count     = var.controller_count
   name      = format("controller%02d.%s", count.index + 1, var.cluster_name)
   image_name = var.controller_image
@@ -118,6 +141,7 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
     role = "controller"
   }
 }
+
 # Create compute nodes
 resource "openstack_compute_instance_v2" "compute-node" {
   count     = var.compute_count
@@ -139,6 +163,28 @@ resource "openstack_compute_instance_v2" "compute-node" {
     group = "openstack-flex"
     cluster_name = var.cluster_name
     role = "compute"
+  }
+}
+
+# Create network nodes
+resource "openstack_compute_instance_v2" "network-node" {
+  count     = var.network_count
+  name      = format("network%02d", count.index + 1)
+  image_name  = var.network_image
+  flavor_name = var.network_flavor
+  key_pair  = openstack_compute_keypair_v2.mykey.name
+  network {
+    name = openstack_networking_network_v2.openstack-flex.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-internal.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  metadata = {
+    hostname = format("network%02d", count.index + 1)
+    group = "openstack-flex"
   }
 }
 
