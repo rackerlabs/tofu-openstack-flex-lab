@@ -212,10 +212,40 @@ resource "openstack_compute_instance_v2" "storage-node" {
   }
 }
 
+# Create ceph nodes
+resource "openstack_compute_instance_v2" "ceph-node" {
+  count     = var.ceph_count
+  name      = format("ceph%02d", count.index + 1)
+  image_name  = var.ceph_image
+  flavor_name = var.ceph_flavor
+  key_pair  = openstack_compute_keypair_v2.mykey.name
+  network {
+    name = openstack_networking_network_v2.openstack-flex.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-internal.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  metadata = {
+    hostname = format("ceph%02d", count.index + 1)
+    group = "openstack-flex"
+  }
+}
+
 # Create storage volumes and attach to storage nodes
 module "storage-volumes" {
-  source = "./modules/volumes"
+  source = "./modules/storage-volumes"
   for_each = { for item in openstack_compute_instance_v2.storage-node : item.name => item.id }
+  instance-name = each.key
+  instance-uuid = each.value
+}
+
+# Create storage volumes and attach to ceph nodes
+module "ceph-volumes" {
+  source = "./modules/ceph-volumes"
+  for_each = { for item in openstack_compute_instance_v2.ceph-node : item.name => item.id }
   instance-name = each.key
   instance-uuid = each.value
 }

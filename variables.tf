@@ -99,6 +99,24 @@ variable "storage_flavor" {
   default = "m1.large"
 }
 
+variable "ceph_count" {
+  type = number
+  description = "Number of ceph nodes that will also have storage volumes."
+  default = 3
+}
+
+variable "ceph_image" {
+  type = string
+  description = "Image name for ceph nodes"
+  default = "Ubuntu-22.04"
+}
+
+variable "ceph_flavor" {
+  type = string
+  description = "Flavor name for ceph nodes"
+  default = "m1.large"
+}
+
 variable "bastion_image" {
   type = string
   description = "Image name for bastion node"

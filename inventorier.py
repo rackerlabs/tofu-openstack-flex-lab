@@ -8,6 +8,7 @@ network_prefix = 'network'
 controller_prefix = 'controller'
 compute_prefix = 'compute'
 storage_prefix = 'storage'
+ceph_prefix = 'ceph'
 cluster_name = 'cluster.local'
 kube_ovn_iface = 'enp3s0'
 mgmt_network = 'openstack-flex'
@@ -24,7 +25,8 @@ hosts = sorted([
     host['name'].startswith(compute_prefix) or
     host['name'].startswith(storage_prefix) or
     host['name'].startswith(kubernetes_prefix) or
-    host['name'].startswith(network_prefix)
+    host['name'].startswith(network_prefix) or
+    host['name'].startswith(ceph_prefix)
 ], key=lambda x: x[0])
 
 inventory = {
@@ -61,6 +63,7 @@ inventory = {
                     host[0].startswith(controller_prefix) or
                     host[0].startswith(compute_prefix) or
                     host[0].startswith(storage_prefix) or
+                    host[0].startswith(ceph_prefix) or
                     host[0].startswith(network_prefix)
                 }},
                 'openstack_control_plane': {'hosts': {
@@ -77,7 +80,11 @@ inventory = {
                 }},
                 'storage_nodes': {
                     'children': {
-                        'ceph_storage_nodes': {'hosts': {}},
+                        'ceph_storage_nodes': {'hosts': {
+                            host[0]: None
+                            for host in hosts if
+                            host[0].startswith(ceph_prefix)
+                        }},
                         'cinder_storage_nodes': {'hosts': {
                             host[0]: None
                             for host in hosts if

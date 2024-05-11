@@ -18,14 +18,14 @@ variable "instance-name" {
   description = "instance name to attach volumes to"
 }
 
-resource "openstack_blockstorage_volume_v3" "volumes" {
+resource "openstack_blockstorage_volume_v3" "ceph-volumes" {
   count = 3
   name      = format("%s-volume-%d", var.instance-name, count.index + 1)
   size = "120"
 }
 
-resource "openstack_compute_volume_attach_v2" "storage_attachments" {
-  for_each = { for item in openstack_blockstorage_volume_v3.volumes : item.name => item.id }
+resource "openstack_compute_volume_attach_v2" "ceph_attachments" {
+  for_each = { for item in openstack_blockstorage_volume_v3.ceph-volumes : item.name => item.id }
   instance_id = var.instance-uuid
   volume_id = each.value
 }
