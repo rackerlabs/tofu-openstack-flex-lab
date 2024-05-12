@@ -10,7 +10,7 @@ compute_prefix = 'compute'
 storage_prefix = 'storage'
 ceph_prefix = 'ceph'
 cluster_name = 'cluster.local'
-kube_ovn_iface = 'enp3s0'
+kube_ovn_iface = 'enp4s0'
 mgmt_network = 'openstack-flex'
 
 servers = os.list_servers()
