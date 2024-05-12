@@ -1,6 +1,13 @@
 #cloud-config
+package_update: true
+package_upgrade: true
 runcmd:
   - curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
   - chmod +x /usr/local/bin/kubectl
   - git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
-package_update: true
+  - chown -R ubuntu:ubuntu /opt/genestack
+  - [su, ubuntu, -c, "export GENESTACK_PRODUCT=openstack-flex; sudo -E /opt/genestack/bootstrap.sh"]
+  - chown -R ubuntu:ubuntu /etc/genestack /home/ubuntu /opt/genestack
+  - echo 'source /opt/genestack/scripts/genestack.rc' >> /home/ubuntu/.bashrc
+  - curl -sLo /tmp/k9s_linux_amd64.deb $(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | jq -r '.assets[] | select(.name=="k9s_linux_amd64.deb").browser_download_url')
+  - dpkg -i /tmp/k9s_linux_amd64.deb
