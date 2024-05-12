@@ -73,6 +73,30 @@ resource "openstack_networking_subnet_v2" "openstack-flex-subnet-internal" {
   enable_dhcp = false
 }
 
+## External Network for metallb
+# Create external network
+resource "openstack_networking_network_v2" "openstack-flex-external" {
+  name           = "openstack-flex-external"
+  admin_state_up = "true"
+  external = false
+  port_security_enabled = false
+}
+
+# Create external subnet
+resource "openstack_networking_subnet_v2" "openstack-flex-subnet-external" {
+  name = "openstack-flex-subnet-external"
+  network_id = openstack_networking_network_v2.openstack-flex-external.id
+  cidr       = "172.16.0.0/24"
+  ip_version = 4
+  enable_dhcp = true
+}
+
+# Create external router interface
+resource "openstack_networking_router_interface_v2" "openstack-flex-router-interface-external" {
+  router_id = openstack_networking_router_v2.openstack-flex-router.id
+  subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet-external.id
+}
+
 ## Compute Network
 # Create compute network
 resource "openstack_networking_network_v2" "openstack-flex-compute" {
@@ -112,6 +136,9 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
   }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
+  }
   metadata = {
     hostname = format("kubernetes%02d", count.index + 1)
     group = "openstack-flex"
@@ -133,6 +160,9 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
   }
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
   }
   metadata = {
     hostname = format("controller%02d", count.index + 1)
@@ -158,6 +188,9 @@ resource "openstack_compute_instance_v2" "compute-node" {
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
   }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
+  }
   metadata = {
     hostname = format("compute%02d", count.index + 1)
     group = "openstack-flex"
@@ -182,6 +215,9 @@ resource "openstack_compute_instance_v2" "network-node" {
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
   }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
+  }
   metadata = {
     hostname = format("network%02d", count.index + 1)
     group = "openstack-flex"
@@ -203,6 +239,9 @@ resource "openstack_compute_instance_v2" "storage-node" {
   }
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
   }
   metadata = {
     hostname = format("storage%02d", count.index + 1)
@@ -227,6 +266,9 @@ resource "openstack_compute_instance_v2" "ceph-node" {
   }
   network {
     name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
   }
   metadata = {
     hostname = format("ceph%02d", count.index + 1)
@@ -263,6 +305,9 @@ resource "openstack_compute_instance_v2" "bastion" {
   network {
     port = openstack_networking_port_v2.bastion.id
   }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-external.name
+  }
   metadata = {
     hostname = "openstack-flex-node-launcher"
     role = "flex-launcher"
@@ -284,12 +329,35 @@ resource "openstack_networking_port_v2" "bastion" {
   }
 }
 
+# Create network port metallb_vip
+resource "openstack_networking_port_v2" "mlbvip" {
+  name = "mlbvip"
+  network_id = openstack_networking_network_v2.openstack-flex-external.id
+  admin_state_up = "true"
+  no_security_groups = "true" # Doc says that security groups interfere with metallb
+
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet-external.id
+    ip_address = "172.16.0.100"
+  }
+}
+
 # Create floating ip for bastion/jump server
 resource "openstack_networking_floatingip_v2" "bastion" {
   pool = "PUBLICNET"
   port_id = openstack_networking_port_v2.bastion.id
 }
 
-output "floating_ip" {
+# Create floating ip for metallb_vip
+resource "openstack_networking_floatingip_v2" "mlbflip" {
+  pool = "PUBLICNET"
+  port_id = openstack_networking_port_v2.mlbvip.id
+}
+
+output "bastion_flip" {
   value = openstack_networking_floatingip_v2.bastion.address
+}
+
+output "metallb_flip" {
+  value = openstack_networking_floatingip_v2.mlbflip.address
 }
