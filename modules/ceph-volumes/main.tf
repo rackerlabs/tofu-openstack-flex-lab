@@ -21,7 +21,7 @@ variable "instance-name" {
 resource "openstack_blockstorage_volume_v3" "ceph-volumes" {
   count = 3
   name      = format("%s-volume-%d", var.instance-name, count.index + 1)
-  size = "120"
+  size = "60"
 }
 
 resource "openstack_compute_volume_attach_v2" "ceph_attachments" {
