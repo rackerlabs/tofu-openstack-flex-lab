@@ -96,7 +96,6 @@ class LabInventory():
                 self.inventory['all'].update({'vars': {}})
                 continue
             self.add_child_group('all', group)
-            self.add_child_group('all', group)
         self.__init_k8s_cluster_child_groups()
 
     def __init_k8s_cluster_child_groups(self):
