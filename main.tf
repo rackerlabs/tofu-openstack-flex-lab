@@ -48,6 +48,17 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-bastion-public-s
   remote_ip_prefix  = "0.0.0.0/0"
 }
 
+## Create management network security group bastion rule for public icmp echo requests
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-bastion-public-ping" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-bastion.id
+  protocol          = "icmp"
+  port_range_min = "8"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
 ## Create management network security group for flex nodes
 # Create sec group
 resource "openstack_networking_secgroup_v2" "secgroup-flex-nodes" {
@@ -87,6 +98,17 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   protocol          = "tcp"
   port_range_min    = "443"
   port_range_max    = "443"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+## Create management network security group node rule for public icmp echo requests
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public-ping" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "icmp"
+  port_range_min = "8"
   remote_ip_prefix  = "0.0.0.0/0"
 }
 
