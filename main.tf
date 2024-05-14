@@ -55,7 +55,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-bastion-public-p
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-bastion.id
   protocol          = "icmp"
-  port_range_min = "8"
   remote_ip_prefix  = "0.0.0.0/0"
 }
 
@@ -108,7 +107,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
   protocol          = "icmp"
-  port_range_min = "8"
   remote_ip_prefix  = "0.0.0.0/0"
 }
 
