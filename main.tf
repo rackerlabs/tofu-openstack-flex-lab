@@ -30,6 +30,66 @@ resource "openstack_networking_router_v2" "openstack-flex-router" {
   external_network_id = data.openstack_networking_network_v2.external-network.id
 }
 
+## Create management network security group for bastion
+# Create sec group
+resource "openstack_networking_secgroup_v2" "secgroup-bastion" {
+  name = "openstack-flex-bastion"
+}
+
+## Create management network security group bastion rule for public SSH access
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-bastion-public-ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-bastion.id
+  protocol          = "tcp"
+  port_range_min    = "22"
+  port_range_max    = "22"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+## Create management network security group for flex nodes
+# Create sec group
+resource "openstack_networking_secgroup_v2" "secgroup-flex-nodes" {
+  name = "openstack-flex-nodes"
+}
+
+## Create management network security group node rule for local SSH access
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-local-ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "tcp"
+  port_range_min    = "22"
+  port_range_max    = "22"
+  remote_ip_prefix  = "172.31.0.0/22"
+}
+
+## Create management network security group node rule for public HTTP access
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public-http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "tcp"
+  port_range_min    = "80"
+  port_range_max    = "80"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+## Create management network security group node rule for public HTTPS access
+# Create sec group rule
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public-https" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "tcp"
+  port_range_min    = "443"
+  port_range_max    = "443"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
 ## Management network
 # Create management network
 resource "openstack_networking_network_v2" "openstack-flex" {
@@ -106,6 +166,7 @@ resource "openstack_networking_port_v2" "kubernetes-ports" {
   name                  = format("kubernetes%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -145,6 +206,7 @@ resource "openstack_networking_port_v2" "controller-ports" {
   name                  = format("controller%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -186,6 +248,7 @@ resource "openstack_networking_port_v2" "compute-ports" {
   name                  = format("compute%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -227,6 +290,7 @@ resource "openstack_networking_port_v2" "network-ports" {
   name                  = format("network%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -266,6 +330,7 @@ resource "openstack_networking_port_v2" "storage-ports" {
   name                  = format("storage%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -307,6 +372,7 @@ resource "openstack_networking_port_v2" "ceph-ports" {
   name                  = format("ceph%02d", count.index + 1)
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
@@ -361,6 +427,7 @@ resource "openstack_networking_port_v2" "bastion" {
   name                  = "bastion"
   network_id            = openstack_networking_network_v2.openstack-flex.id
   admin_state_up = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-bastion.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
   }
