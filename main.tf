@@ -98,7 +98,7 @@ resource "openstack_compute_keypair_v2" "mykey" {
 # Create controller nodes
 resource "openstack_compute_instance_v2" "k8s-controller" {
   count     = var.controller_count
-  name      = format("controller%02d", count.index + 1)
+  name      = format("controller%02d.%s", count.index + 1, var.cluster_name)
   image_name = var.controller_image
   flavor_name = var.controller_flavor
   key_pair  = openstack_compute_keypair_v2.mykey.name
@@ -114,12 +114,14 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
   metadata = {
     hostname = format("controller%02d", count.index + 1)
     group = "openstack-flex"
+    cluster_name = var.cluster_name
+    role = "controller"
   }
 }
 # Create compute nodes
 resource "openstack_compute_instance_v2" "compute-node" {
   count     = var.compute_count
-  name      = format("compute%02d", count.index + 1)
+  name      = format("compute%02d.%s", count.index + 1, var.cluster_name)
   image_name  = var.compute_image
   flavor_name = var.compute_flavor
   key_pair  = openstack_compute_keypair_v2.mykey.name
@@ -135,13 +137,15 @@ resource "openstack_compute_instance_v2" "compute-node" {
   metadata = {
     hostname = format("compute%02d", count.index + 1)
     group = "openstack-flex"
+    cluster_name = var.cluster_name
+    role = "compute"
   }
 }
 
 # Create storage nodes
 resource "openstack_compute_instance_v2" "storage-node" {
   count     = var.storage_count
-  name      = format("storage%02d", count.index + 1)
+  name      = format("storage%02d.%s", count.index + 1, var.cluster_name)
   image_name  = var.storage_image
   flavor_name = var.storage_flavor
   key_pair  = openstack_compute_keypair_v2.mykey.name
@@ -157,6 +161,8 @@ resource "openstack_compute_instance_v2" "storage-node" {
   metadata = {
     hostname = format("storage%02d", count.index + 1)
     group = "openstack-flex"
+    cluster_name = var.cluster_name
+    role = "storage"
   }
 }
 
@@ -174,7 +180,7 @@ data "template_file" "cloudinit" {
   template = file("./scripts/cloudinit/configure.yaml")
 }
 resource "openstack_compute_instance_v2" "bastion" {
-  name      = "openstack-flex-launcher"
+  name      = format("openstack-flex-launcher.%s", var.cluster_name)
   image_name  = var.bastion_image
   flavor_name = var.bastion_flavor
   key_pair  = openstack_compute_keypair_v2.mykey.name
@@ -183,7 +189,9 @@ resource "openstack_compute_instance_v2" "bastion" {
   }
   metadata = {
     hostname = "openstack-flex-node-launcher"
+    role = "flex-launcher"
     group = "openstack-flex"
+    cluster_name = var.cluster_name
   }
   user_data = data.template_file.cloudinit.rendered
 }

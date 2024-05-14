@@ -74,3 +74,9 @@ variable "bastion_flavor" {
   description = "Flavor name for bastion node"
   default = "m1.medium"
 }
+
+variable "cluster_name" {
+  type = string
+  description = "Name of the cluster"
+  default = "cluster.local"
+}
