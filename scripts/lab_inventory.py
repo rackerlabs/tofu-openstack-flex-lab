@@ -109,6 +109,7 @@ class LabInventory():
                   'storage_nodes']
         for group in groups:
             self.add_group(group)
+            self.add_child_group('k8s_cluster', group)
 
     def add_group(self, group: str) -> bool:
         '''Adds group to inventory '''
