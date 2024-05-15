@@ -166,6 +166,7 @@ class LabInventory():
                     self.launcher_floating_ip = self.get_floating_ip_from_server(server)
                     ansible_ssh_vars = f"-o StrictHostKeyChecking=no -o ProxyCommand='ssh -W %h:%p -q {self.launcher_floating_ip}'" # pylint: disable=line-too-long.
                     self.add_vars_to_group('all', {'ansible_ssh_common_args': ansible_ssh_vars})
+                    self.add_vars_to_group('all', {'ansible_forks': 25})
 
     def json(self) -> str:
         '''Returns json representation of inventory'''
