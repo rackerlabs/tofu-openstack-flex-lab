@@ -102,7 +102,7 @@ class LabInventory():
         '''Help method to initialize k8s_cluster child groups'''
         groups = [ 'etcd',
                   'kube_control_plane',
-                  'kube_nodes',
+                  'kube_node',
                   'nova_compute_nodes',
                   'openstack_control_plane',
                   'ovn_network_nodes',
@@ -148,7 +148,7 @@ class LabInventory():
                 # logger.info(f'processing {server.name}')
                 role = server.metadata['role']
                 self.add_host_to_hostvars(server)
-                self.add_host_to_group(server.name, 'kube_nodes')
+                self.add_host_to_group(server.name, 'kube_node')
                 if role == 'controller':
                     self.add_host_to_group(server.name, 'etcd')
                     self.add_host_to_group(server.name, 'kube_control_plane')
