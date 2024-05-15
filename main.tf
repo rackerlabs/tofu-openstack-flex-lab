@@ -192,7 +192,7 @@ resource "openstack_compute_keypair_v2" "mykey" {
 # Create network ports for k8s nodes
 resource "openstack_networking_port_v2" "kubernetes-ports" {
   count              = var.kubernetes_count
-  name               = format("kubernetes%02d", count.index + 1)
+  name               = format("kubernetes%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -210,7 +210,7 @@ resource "openstack_networking_port_v2" "kubernetes-ports" {
 # Create kubernetes nodes
 resource "openstack_compute_instance_v2" "k8s-controller" {
   count       = var.kubernetes_count
-  name        = format("kubernetes%02d", count.index + 1)
+  name        = format("kubernetes%02d.%s", count.index + 1, var.cluster_name)
   image_name  = var.kubernetes_image
   flavor_name = var.kubernetes_flavor
   key_pair    = openstack_compute_keypair_v2.mykey.name
@@ -226,13 +226,15 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
   metadata = {
     hostname = format("kubernetes%02d", count.index + 1)
     group    = "openstack-flex"
+    cluster_name = var.cluster_name
+    role         = "kube_control_plane"
   }
 }
 
 # Create network ports for controller nodes
 resource "openstack_networking_port_v2" "controller-ports" {
   count              = var.controller_count
-  name               = format("controller%02d", count.index + 1)
+  name               = format("controller%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -274,7 +276,7 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
 # Create network ports for compute nodes
 resource "openstack_networking_port_v2" "compute-ports" {
   count              = var.compute_count
-  name               = format("compute%02d", count.index + 1)
+  name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -316,7 +318,7 @@ resource "openstack_compute_instance_v2" "compute-node" {
 # Create network ports for network nodes
 resource "openstack_networking_port_v2" "network-ports" {
   count              = var.network_count
-  name               = format("network%02d", count.index + 1)
+  name               = format("network%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -334,7 +336,7 @@ resource "openstack_networking_port_v2" "network-ports" {
 # Create network nodes
 resource "openstack_compute_instance_v2" "network-node" {
   count       = var.network_count
-  name        = format("network%02d", count.index + 1)
+  name        = format("network%02d.%s", count.index + 1, var.cluster_name)
   image_name  = var.network_image
   flavor_name = var.network_flavor
   key_pair    = openstack_compute_keypair_v2.mykey.name
@@ -350,13 +352,15 @@ resource "openstack_compute_instance_v2" "network-node" {
   metadata = {
     hostname = format("network%02d", count.index + 1)
     group    = "openstack-flex"
+    cluster_name = var.cluster_name
+    role         = "network"
   }
 }
 
 # Create network ports for storage nodes
 resource "openstack_networking_port_v2" "storage-ports" {
   count              = var.storage_count
-  name               = format("storage%02d", count.index + 1)
+  name               = format("storage%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -398,7 +402,7 @@ resource "openstack_compute_instance_v2" "storage-node" {
 # Create network ports for ceph nodes
 resource "openstack_networking_port_v2" "ceph-ports" {
   count              = var.storage_count
-  name               = format("ceph%02d", count.index + 1)
+  name               = format("ceph%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.openstack-flex.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
@@ -416,7 +420,7 @@ resource "openstack_networking_port_v2" "ceph-ports" {
 # Create ceph nodes
 resource "openstack_compute_instance_v2" "ceph-node" {
   count       = var.ceph_count
-  name        = format("ceph%02d", count.index + 1)
+  name        = format("ceph%02d.%s", count.index + 1, var.cluster_name)
   image_name  = var.ceph_image
   flavor_name = var.ceph_flavor
   key_pair    = openstack_compute_keypair_v2.mykey.name
@@ -432,6 +436,8 @@ resource "openstack_compute_instance_v2" "ceph-node" {
   metadata = {
     hostname = format("ceph%02d", count.index + 1)
     group    = "openstack-flex"
+    cluster_name = var.cluster_name
+    role         = "ceph"
   }
 }
 
