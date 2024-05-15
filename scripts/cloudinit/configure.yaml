@@ -1,5 +1,42 @@
 #cloud-config
-runcmd:
-  - curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
-  - chmod +x /usr/local/bin/kubectl
 package_update: true
+package_upgrade: true
+runcmd:
+  - >
+    echo '############################################################\n           welcome to your openstack-flex
+    bastion\n############################################################\n' >> /etc/motd
+  - >
+    echo ' * kubectl - pending' >> /etc/motd &&
+    echo ' * genestack repo - pending' >> /etc/motd &&
+    echo ' * genestack bootstrap - pending' >> /etc/motd &&
+    echo ' * k9s - pending' >> /etc/motd &&
+    echo '\nWARNING: cloudinit is still running!' >> /etc/motd
+  - >
+    curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    -o /usr/local/bin/kubectl
+  - >
+    chmod +x /usr/local/bin/kubectl
+    && sed -i 's/kubectl - pending/kubectl - installed/' /etc/motd
+    || sed -i 's/kubectl - pending/kubectl - installed/' /etc/motd
+  - >
+    git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
+    && sed -i 's/genestack repo - pending/genestack repo - cloned/' /etc/motd
+    || sed -i 's/genestack repo - pending/genestack repo - missing/' /etc/motd
+  - chown -R ubuntu:ubuntu /opt/genestack
+  - [su, ubuntu, -c, "export GENESTACK_PRODUCT=openstack-flex; sudo -E /opt/genestack/bootstrap.sh"]
+  - >
+    chown -R ubuntu:ubuntu /etc/genestack /home/ubuntu /opt/genestack
+    && sed -i 's/genestack bootstrap - pending/genestack bootstrap - complete/' /etc/motd
+    || sed -i 's/genestack bootstrap - pending/genestack bootstrap - failed/' /etc/motd
+  - echo 'source /opt/genestack/scripts/genestack.rc' >> /home/ubuntu/.bashrc
+  - >
+    curl -sLo /tmp/k9s_linux_amd64.deb
+    $(curl -s https://api.github.com/repos/derailed/k9s/releases/latest
+    | jq -r '.assets[] | select(.name=="k9s_linux_amd64.deb").browser_download_url')
+  - >
+    dpkg -i /tmp/k9s_linux_amd64.deb
+    && sed -i 's/k9s - pending/k9s - installed/' /etc/motd
+    || sed -i 's/k9s - pending/k9s - missing/' /etc/motd
+  - sed -i '/cloudinit is still running/Id' /etc/motd
+  - echo '============================================================' >> /etc/motd
+  - wall 'CloudInit is complete!'
