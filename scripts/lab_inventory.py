@@ -149,7 +149,9 @@ class LabInventory():
                 # logger.info(f'processing {server.name}')
                 role = server.metadata['role']
                 self.add_host_to_hostvars(server)
-                self.add_host_to_group(server.name, 'kube_node')
+                # do not add flex launcher to kube nodes
+                if role != 'flex-launcher':
+                    self.add_host_to_group(server.name, 'kube_node')
                 if role == 'controller':
                     self.add_host_to_group(server.name, 'etcd')
                     self.add_host_to_group(server.name, 'kube_control_plane')
