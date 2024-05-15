@@ -137,5 +137,5 @@ variable "cluster_name" {
 variable "mlb_vips" {
   type = list(string)
   description = "VIPs to create for Metal LB, should not overlap with subnet allocation pool!"
-  default = ["172.31.3.1", "172.31.3.2", "172.31.3.3", "172.31.3.4", "172.31.3.5"]
+  default = ["172.31.3.1", "172.31.3.2", "172.31.3.3"]
 }
