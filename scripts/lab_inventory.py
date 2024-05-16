@@ -149,7 +149,9 @@ class LabInventory:
 
     def parse_servers_from_openstack(self, servers: list) -> bool:
         """Adds list of servers from openstack to inventory"""
-        ansible_ssh_vars = None  # must declare
+        ansible_ssh_vars = None
+        servers = sorted(servers, key=lambda x: x.name)
+        roles = set(server.metadata['role'] for server in servers)
         for server in servers:
             if 'role' in server.metadata:
                 # logger.info(f'processing {server.name}')
@@ -158,11 +160,20 @@ class LabInventory:
                 # do not add flex launcher to kube nodes
                 if role != 'flex-launcher':
                     self.add_host_to_group(server.name, 'kube_node')
-                if role == 'controller':
-                    self.add_host_to_group(server.name, 'etcd')
+                if role == 'kubernetes':
                     self.add_host_to_group(server.name, 'kube_control_plane')
-                    self.add_host_to_group(server.name, 'openstack_control_plane')
+                if role == 'network':
                     self.add_host_to_group(server.name, 'ovn_network_nodes')
+                if role == 'etcd':
+                    self.add_host_to_group(server.name, 'etcd')
+                if role == 'controller':
+                    self.add_host_to_group(server.name, 'openstack_control_plane')
+                    if 'etcd' not in roles:
+                        self.add_host_to_group(server.name, 'etcd')
+                    if 'kubernetes' not in roles:
+                        self.add_host_to_group(server.name, 'kube_control_plane')
+                    if 'network' not in roles:
+                        self.add_host_to_group(server.name, 'ovn_network_nodes')
                 if role == 'compute':
                     self.add_host_to_group(server.name, 'nova_compute_nodes')
                 if role == 'storage':

@@ -227,7 +227,7 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
     hostname = format("kubernetes%02d", count.index + 1)
     group    = "openstack-flex"
     cluster_name = var.cluster_name
-    role         = "kube_control_plane"
+    role         = "kubernetes"
   }
 }
 
