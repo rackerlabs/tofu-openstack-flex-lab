@@ -165,8 +165,11 @@ class LabInventory():
                     self.add_host_to_group(server.name, 'flex_launcher')
                     self.launcher_floating_ip = self.get_floating_ip_from_server(server)
                     ansible_ssh_vars = f"-o StrictHostKeyChecking=no -o ProxyCommand='ssh -W %h:%p -q {self.launcher_floating_ip}'" # pylint: disable=line-too-long.
-                    self.add_vars_to_group('all', {'ansible_ssh_common_args': ansible_ssh_vars})
-                    self.add_vars_to_group('all', {'ansible_forks': 25})
+        self.add_vars_to_group('all', {'ansible_ssh_common_args': ansible_ssh_vars})
+        self.add_vars_to_group('all', {'ansible_forks': 25})
+        self.add_vars_to_group('k8s_cluster', {'kube_ovn_default_interface_name': 'enps40'})
+        self.add_vars_to_group('k8s_cluster', {'kube_ovn_iface': 'enps40'})
+        self.add_vars_to_group('k8s_cluster', {'kube_ovn_central_hosts': self.inventory['ovn_network_nodes']['hosts']}) # pylint: disable=line-too-long.
 
     def json(self) -> str:
         '''Returns json representation of inventory'''
