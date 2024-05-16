@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''dynamic inventory for lab environment to be used with ansible'''
+"""dynamic inventory for lab environment to be used with ansible"""
 
 import argparse
 import json
@@ -10,8 +10,9 @@ from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.inventory.data import InventoryData
 from ansible.inventory.host import Host
 
+
 class InventoryModule(BaseInventoryPlugin):
-    '''WIP Custom inventory builder'''
+    """WIP Custom inventory builder"""
     NAME = 'lab_inventory'
 
     def __init__(self, cloud):
@@ -22,15 +23,15 @@ class InventoryModule(BaseInventoryPlugin):
     def parse(self, inventory, loader, path, cache=True):
         super(InventoryModule, self).parse(inventory, loader, path, cache)
         self.inventory.add_group('k8s_cluster')
-        k8s_cluster_children_groups = [ 'etcd',
-                                      'kube_control_plane',
-                                      'kube_node',
-                                      'nova_compute_nodes',
-                                      'openstack_control_plane',
-                                      'ovn_network_nodes',
-                                      'storage_nodes',
-                                      'ceph_storage_nodes',
-                                      'cinder_storage_nodes']
+        k8s_cluster_children_groups = ['etcd',
+                                       'kube_control_plane',
+                                       'kube_node',
+                                       'nova_compute_nodes',
+                                       'openstack_control_plane',
+                                       'ovn_network_nodes',
+                                       'storage_nodes',
+                                       'ceph_storage_nodes',
+                                       'cinder_storage_nodes']
         for group in k8s_cluster_children_groups:
             self.inventory.add_group(group)
 
@@ -51,19 +52,20 @@ class InventoryModule(BaseInventoryPlugin):
                 if role == 'storage`':
                     self.inventory.add_host(server.name, 'storage_nodes')
 
+
 def inventory_data(servers):
-    '''WIP Try using InventoryData Class'''
+    """WIP Try using InventoryData Class"""
     inventory = InventoryData()
     inventory.add_group('k8s_cluster')
-    k8s_cluster_children_groups = [ 'etcd',
-                                    'kube_control_plane',
-                                    'kube_node',
-                                    'nova_compute_nodes',
-                                    'openstack_control_plane',
-                                    'ovn_network_nodes',
-                                    'storage_nodes',
-                                    'ceph_storage_nodes',
-                                    'cinder_storage_nodes']
+    k8s_cluster_children_groups = ['etcd',
+                                   'kube_control_plane',
+                                   'kube_node',
+                                   'nova_compute_nodes',
+                                   'openstack_control_plane',
+                                   'ovn_network_nodes',
+                                   'storage_nodes',
+                                   'ceph_storage_nodes',
+                                   'cinder_storage_nodes']
     for group in k8s_cluster_children_groups:
         inventory.add_group(group)
 
@@ -85,8 +87,10 @@ def inventory_data(servers):
                 inventory.add_host(host.name, 'storage_nodes')
     return inventory
 
-class LabInventory():
-    '''A class to load lab inventory for kubespray'''
+
+class LabInventory:
+    """A class to load lab inventory for kubespray"""
+
     def __init__(self) -> None:
         self.inventory = {'_meta': {'hostvars': {}}}
         self.launcher_floating_ip = None
@@ -99,8 +103,8 @@ class LabInventory():
         self.__init_k8s_cluster_child_groups()
 
     def __init_k8s_cluster_child_groups(self):
-        '''Help method to initialize k8s_cluster child groups'''
-        groups = [ 'etcd',
+        """Help method to initialize k8s_cluster child groups"""
+        groups = ['etcd',
                   'kube_control_plane',
                   'kube_node',
                   'nova_compute_nodes',
@@ -112,38 +116,42 @@ class LabInventory():
             self.add_child_group('k8s_cluster', group)
 
     def add_group(self, group: str) -> bool:
-        '''Adds group to inventory '''
+        """Adds group to inventory """
         if group not in self.inventory:
-            self.inventory.update({group: { 'children': [], 'hosts': [], 'vars': {} }})
+            self.inventory.update({group: {'children': [], 'hosts': [], 'vars': {}}})
         return True
 
     def add_child_group(self, parent: dict, child: str) -> bool:
-        ''' Adds a child group to an inventory group'''
+        """ Adds a child group to an inventory group"""
         self.inventory[parent]['children'].append(child)
 
     def add_host_to_group(self, host: str, group: str) -> bool:
-        ''' Adds host to specified inventory group'''
+        """ Adds host to specified inventory group"""
         self.inventory[group]['hosts'].append(host)
         return True
 
     def add_host_to_hostvars(self, server):
-        '''Adds server to hostvars'''
+        """Adds server to hostvars"""
         server_ip = server['addresses']['openstack-flex'][0]['addr']
         self.inventory['_meta']['hostvars'].update({server.name: {'ansible_host': server_ip,
-                                                                 'ip': server_ip}})
+                                                                  'ip': server_ip}})
+
     def add_vars_to_group(self, group, ansible_var: dict) -> None:
-        '''Adds vars to specified group'''
+        """Adds vars to specified group"""
         self.inventory[group]['vars'].update(ansible_var)
 
     def get_floating_ip_from_server(self, server: Type[openstack.compute.v2.server.Server]) -> str:
-        '''Gets the floating ip from server.  It will return the first one or none'''
+        """Gets the floating ip from server.  It will return the first one or none"""
         for item in server['addresses']['openstack-flex']:
             if item['OS-EXT-IPS:type'] == 'floating':
                 return item['addr']
         return None
 
     def parse_servers_from_openstack(self, servers: list) -> bool:
-        '''Adds list of servers from openstack to inventory'''
+        """Adds list of servers from openstack to inventory"""
+        ansible_ssh_vars = None
+        servers = sorted(servers, key=lambda x: x.name)
+        roles = set(server.metadata['role'] for server in servers)
         for server in servers:
             if 'role' in server.metadata:
                 # logger.info(f'processing {server.name}')
@@ -152,11 +160,20 @@ class LabInventory():
                 # do not add flex launcher to kube nodes
                 if role != 'flex-launcher':
                     self.add_host_to_group(server.name, 'kube_node')
-                if role == 'controller':
-                    self.add_host_to_group(server.name, 'etcd')
+                if role == 'kubernetes':
                     self.add_host_to_group(server.name, 'kube_control_plane')
-                    self.add_host_to_group(server.name, 'openstack_control_plane')
+                if role == 'network':
                     self.add_host_to_group(server.name, 'ovn_network_nodes')
+                if role == 'etcd':
+                    self.add_host_to_group(server.name, 'etcd')
+                if role == 'controller':
+                    self.add_host_to_group(server.name, 'openstack_control_plane')
+                    if 'etcd' not in roles:
+                        self.add_host_to_group(server.name, 'etcd')
+                    if 'kubernetes' not in roles:
+                        self.add_host_to_group(server.name, 'kube_control_plane')
+                    if 'network' not in roles:
+                        self.add_host_to_group(server.name, 'ovn_network_nodes')
                 if role == 'compute':
                     self.add_host_to_group(server.name, 'nova_compute_nodes')
                 if role == 'storage':
@@ -164,31 +181,32 @@ class LabInventory():
                 if role == 'flex-launcher':
                     self.add_host_to_group(server.name, 'flex_launcher')
                     self.launcher_floating_ip = self.get_floating_ip_from_server(server)
-                    ansible_ssh_vars = f"-o StrictHostKeyChecking=no -o ProxyCommand='ssh -W %h:%p -q {self.launcher_floating_ip}'" # pylint: disable=line-too-long.
+                    ansible_ssh_vars = f"-o StrictHostKeyChecking=no -o ProxyCommand='ssh -W %h:%p -q {self.launcher_floating_ip}'"  # pylint: disable=line-too-long.
         self.add_vars_to_group('all', {'ansible_ssh_common_args': ansible_ssh_vars})
         self.add_vars_to_group('all', {'ansible_forks': 25})
         self.add_vars_to_group('k8s_cluster', {'kube_ovn_default_interface_name': 'enps40'})
         self.add_vars_to_group('k8s_cluster', {'kube_ovn_iface': 'enps40'})
-        self.add_vars_to_group('k8s_cluster', {'kube_ovn_central_hosts': self.inventory['ovn_network_nodes']['hosts']}) # pylint: disable=line-too-long.
+        self.add_vars_to_group('k8s_cluster', {'kube_ovn_central_hosts': self.inventory['ovn_network_nodes']['hosts']})  # pylint: disable=line-too-long.
 
     def json(self) -> str:
-        '''Returns json representation of inventory'''
+        """Returns json representation of inventory"""
         return json.dumps(self.inventory)
 
 
 def main(cloud):
-    '''The main function'''
+    """The main function"""
     os_client = openstack.connect(cloud)
     servers = os_client.list_servers()
     inventory = LabInventory()
     inventory.parse_servers_from_openstack(servers)
     print(inventory.json())
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cloud',
                         default=getenv('OS_CLOUD'),
-                        help='The openstack cloud from clouds.yaml. Defaults to OS_CLOUD env variable') # pylint: disable=line-too-long.
+                        help='The openstack cloud from clouds.yaml. Defaults to OS_CLOUD env variable')  # pylint: disable=line-too-long.
     parser.add_argument('--list',
                         action='store_true')
     args = parser.parse_args()
