@@ -5,10 +5,12 @@ import argparse
 import json
 from typing import Type
 from os import getenv
+import sys
 import openstack
 from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.inventory.data import InventoryData
 from ansible.inventory.host import Host
+from ruamel.yaml import YAML
 
 
 class InventoryModule(BaseInventoryPlugin):
@@ -192,14 +194,24 @@ class LabInventory:
         """Returns json representation of inventory"""
         return json.dumps(self.inventory)
 
+    def yaml_dump(self) -> None:
+        """Prints yaml to stdout"""
+        yaml = YAML(typ='safe')
+        data = self.inventory
+        data['hosts'] = data['_meta']['hostvars']
+        del data['_meta']
+        yaml.dump(data, sys.stdout)
 
-def main(cloud):
+def main(args):
     """The main function"""
-    os_client = openstack.connect(cloud)
+    os_client = openstack.connect(args.cloud)
     servers = os_client.list_servers()
     inventory = LabInventory()
     inventory.parse_servers_from_openstack(servers)
-    print(inventory.json())
+    if args.yaml is True:
+        inventory.yaml_dump()
+    else:
+        print(inventory.json())
 
 
 if __name__ == '__main__':
@@ -209,5 +221,6 @@ if __name__ == '__main__':
                         help='The openstack cloud from clouds.yaml. Defaults to OS_CLOUD env variable')  # pylint: disable=line-too-long.
     parser.add_argument('--list',
                         action='store_true')
+    parser.add_argument('--yaml', action='store_true')
     args = parser.parse_args()
-    main(args.cloud)
+    main(args)
