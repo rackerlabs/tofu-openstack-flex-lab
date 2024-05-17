@@ -1,0 +1,13 @@
+---
+- name: Add cluster to etc hosts
+  hosts: all
+  tasks:
+  - name: Add IP address of all hosts to all hosts
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ item }}$'
+      line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{item}}"
+      state: present
+    when: hostvars[item].ansible_host is defined
+    with_items: "{{ groups.all }}"
+    become: yes
