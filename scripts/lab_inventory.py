@@ -153,7 +153,10 @@ class LabInventory:
         """Adds list of servers from openstack to inventory"""
         ansible_ssh_vars = None
         servers = sorted(servers, key=lambda x: x.name)
-        roles = set(server.metadata['role'] for server in servers)
+        roles=set()
+        for server in servers:
+            if 'role' in server.metadata:
+                roles.add(server.metadata['role'])
         for server in servers:
             if 'role' in server.metadata:
                 # logger.info(f'processing {server.name}')
