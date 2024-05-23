@@ -1,7 +1,13 @@
+import argparse
 import openstack
 import yaml
 
-os = openstack.connect('rxt-sjc-lar')
+parser = argparse.ArgumentParser()
+parser.add_argument('os_cloud',
+                    help='cloud to use from clouds.yaml openstack config file to generate inventory for')
+args = parser.parse_args()
+
+os = openstack.connect(args.os_cloud)
 
 kubernetes_prefix = 'kubernetes'
 network_prefix = 'network'
