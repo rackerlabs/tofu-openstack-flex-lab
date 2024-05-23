@@ -1,6 +1,7 @@
 ---
 - name: Add cluster to etc hosts
   hosts: all
+  tags: setup_hosts_file
   tasks:
   - name: Add IP address of all hosts to all hosts
     lineinfile:
@@ -11,3 +12,20 @@
     when: hostvars[item].ansible_host is defined
     with_items: "{{ groups.all }}"
     become: yes
+- name: Create inventory on flex_launcher
+  hosts: flex_launcher
+  tags: setup_inventory
+  tasks:
+  - name: run local inventory generation script
+    local_action:
+      module: ansible.builtin.command
+      chdir: ../../.
+      argv:
+      - python
+      - scripts/inventorier.py
+      - "{{ lookup('ansible.builtin.env', 'OS_CLOUD') }}"
+    register: inventory_result
+  - name: Add genestack inventory
+    ansible.builtin.copy:
+      dest: /etc/genestack/inventory/inventory.yaml
+      content: "{{ inventory_result.stdout }}"
