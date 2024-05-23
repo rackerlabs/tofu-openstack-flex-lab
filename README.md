@@ -79,7 +79,7 @@ Once you `apply` the tofu config you will be given the ip address of your launch
 An ansible playbook along with a dynamic inventory script will populate the `/etc/hosts` file and drop the `/etc/genestack/inventory/inventory.yaml` file on the launcher node.
 
 ```bash
-OS_CLOUD=rxt-sjc-servers2nd ansible-playbook -i scripts/lab_inventory.py scripts/playbooks/prepare_for_kubespray.yaml -u ubuntu
+OS_CLOUD=rxt-sjc-example ansible-playbook -i scripts/lab_inventory.py scripts/playbooks/prepare_for_kubespray.yaml -u ubuntu
 ```
 
 ### time for kubespray
