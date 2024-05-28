@@ -3,29 +3,37 @@
   hosts: all
   tags: setup_hosts_file
   tasks:
-  - name: Add IP address of all hosts to all hosts
-    lineinfile:
-      dest: /etc/hosts
-      regexp: '.*{{ item }}$'
-      line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{item}}"
-      state: present
-    when: hostvars[item].ansible_host is defined
-    with_items: "{{ groups.all }}"
-    become: yes
+    - name: Add IP address of all hosts to all hosts
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: '.*{{ item }}$'
+        line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{item}}"
+        state: present
+      when: hostvars[item].ansible_host is defined
+      with_items: "{{ groups.all }}"
+      become: true
 - name: Create inventory on flex_launcher
   hosts: flex_launcher
   tags: setup_inventory
   tasks:
-  - name: run local inventory generation script
-    local_action:
-      module: ansible.builtin.command
-      chdir: ../../.
-      argv:
-      - python
-      - scripts/inventorier.py
-      - "{{ lookup('ansible.builtin.env', 'OS_CLOUD') }}"
-    register: inventory_result
-  - name: Add genestack inventory
-    ansible.builtin.copy:
-      dest: /etc/genestack/inventory/inventory.yaml
-      content: "{{ inventory_result.stdout }}"
+    - name: Run local inventory generation script
+      ansible.builtin.command:
+        chdir: ../../.
+        argv:
+          - python
+          - scripts/inventorier.py
+          - "{{ lookup('ansible.builtin.env', 'OS_CLOUD') }}"
+      delegate_to: localhost
+      register: inventory_result
+      changed_when: false
+    - name: Add genestack inventory
+      ansible.builtin.copy:
+        dest: /etc/genestack/inventory/inventory.yaml
+        content: "{{ inventory_result.stdout }}"
+        mode: "0644"
+    - name: Get kube config script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/get_kube_config.sh
+        src: get_kube_config.sh
+        mode: "0755"
+      become: true
