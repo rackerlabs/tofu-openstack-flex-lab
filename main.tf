@@ -273,6 +273,48 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
   }
 }
 
+# Create network ports for worker nodes
+resource "openstack_networking_port_v2" "worker-ports" {
+  count              = var.worker_count
+  name               = format("worker%02d.%s", count.index + 1, var.cluster_name)
+  network_id         = openstack_networking_network_v2.openstack-flex.id
+  admin_state_up     = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  }
+  dynamic "allowed_address_pairs" {
+    for_each = toset(var.mlb_vips)
+    content {
+      ip_address = allowed_address_pairs.value
+    }
+  }
+}
+
+# Create worker nodes
+resource "openstack_compute_instance_v2" "openstack-worker" {
+  count       = var.worker_count
+  name        = format("worker%02d.%s", count.index + 1, var.cluster_name)
+  image_name  = var.worker_image
+  flavor_name = var.worker_flavor
+  key_pair    = openstack_compute_keypair_v2.mykey.name
+  network {
+    port = openstack_networking_port_v2.worker-ports[count.index].id
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-internal.name
+  }
+  network {
+    name = openstack_networking_network_v2.openstack-flex-compute.name
+  }
+  metadata = {
+    hostname     = format("worker%02d", count.index + 1)
+    group        = "openstack-flex"
+    cluster_name = var.cluster_name
+    role         = "worker"
+  }
+}
+
 # Create network ports for compute nodes
 resource "openstack_networking_port_v2" "compute-ports" {
   count              = var.compute_count

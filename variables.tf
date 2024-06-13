@@ -48,7 +48,7 @@ variable "network_flavor" {
 variable "controller_count" {
   type = number
   description = "number of controllers"
-  default = 7
+  default = 5
 }
 
 variable "controller_image" {
@@ -60,6 +60,24 @@ variable "controller_image" {
 variable "controller_flavor" {
   type = string
   description = "Flavor name for controller"
+  default = "m1.large"
+}
+
+variable "worker_count" {
+  type = number
+  description = "number of workers"
+  default = 7
+}
+
+variable "worker_image" {
+  type = string
+  description = "Image name for workers"
+  default = "Ubuntu-22.04"
+}
+
+variable "worker_flavor" {
+  type = string
+  description = "Flavor name for workers"
   default = "m1.large"
 }
 
@@ -78,7 +96,7 @@ variable "compute_image" {
 variable "compute_flavor" {
   type = string
   description = "Flavor name for compute nodes"
-  default = "m1.large"
+  default = "m1.extra_large"
 }
 
 variable "storage_count" {

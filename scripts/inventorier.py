@@ -12,6 +12,7 @@ os = openstack.connect(args.os_cloud)
 kubernetes_prefix = 'kubernetes'
 network_prefix = 'network'
 controller_prefix = 'controller'
+worker_prefix = 'worker'
 compute_prefix = 'compute'
 storage_prefix = 'storage'
 ceph_prefix = 'ceph'
@@ -28,6 +29,7 @@ hosts = sorted([
         host['addresses'][mgmt_network][0]['addr']
     ) for host in servers if
     host['name'].startswith(controller_prefix) or
+    host['name'].startswith(worker_prefix) or
     host['name'].startswith(compute_prefix) or
     host['name'].startswith(storage_prefix) or
     host['name'].startswith(kubernetes_prefix) or
@@ -67,6 +69,7 @@ inventory = {
                     for host in hosts if
                     host[0].startswith(kubernetes_prefix) or
                     host[0].startswith(controller_prefix) or
+                    host[0].startswith(worker_prefix) or
                     host[0].startswith(compute_prefix) or
                     host[0].startswith(storage_prefix) or
                     host[0].startswith(ceph_prefix) or
