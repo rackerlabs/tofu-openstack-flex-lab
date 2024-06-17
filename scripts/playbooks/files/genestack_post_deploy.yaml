@@ -1,0 +1,114 @@
+---
+- name: Label stoage nodes
+  hosts: ceph_storage_nodes
+  tags: label_nodes
+  tasks:
+    - name: Label storage nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            labels:
+              role: storage
+              openstack-storage-node: enabled
+      delegate_to: localhost
+
+- name: Label control plane nodes
+  hosts: openstack_control_plane
+  tags: label_nodes
+  tasks:
+    - name: Label storage nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            labels:
+              openstack-control-plane: enabled
+      delegate_to: localhost
+
+# Commenting this out since the doc limits to the first three controller nodes
+# and this will enable vault storage on all of the controller nodes
+# - name: Label vault nodes
+#   hosts: openstack_control_plane
+#   tasks:
+#     - name: Label vault nodes
+#       kubernetes.core.k8s:
+#         definition:
+#           apiVersion: v1
+#           kind: Node
+#           metadata:
+#             name: "{{ inventory_hostname }}"
+#             labels:
+#               vault-storage: enabled
+#       delegate_to: localhost
+
+- name: Label nova compute nodes
+  hosts: nova_compute_nodes
+  tags: label_nodes
+  tasks:
+    - name: Label nova compute nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            labels:
+              openstack-compute-node: enabled
+      delegate_to: localhost
+
+- name: Label openstack network nodes
+  hosts: ovn_network_nodes:nova_compute_nodes
+  tags: label_nodes
+  tasks:
+    - name: Label nova compute nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            labels:
+              openstack-network-node: enabled
+      delegate_to: localhost
+
+- name: Label worker nodes
+  hosts: openstack_control_plane:openstack_worker_nodes
+  tags: label_nodes
+  tasks:
+    - name: Label worker nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            labels:
+              node-role.kubernetes.io/worker: worker
+      delegate_to: localhost
+
+- name: Remove taint from controllers
+  hosts: kube_control_plane
+  tags: taint_nodes
+  tasks:
+    - name: Remove taint
+      kubernetes.core.k8s_taint:
+        state: absent
+        name: "{{ inventory_hostname }}"
+        taints:
+          - effect: NoSchedule
+      delegate_to: localhost
+
+- name: Deploy k8s dashboard
+  hosts: localhost
+  connection: local
+  tags: deploy_dashboard
+  tasks:
+    - name: Deploy k8s dashboard
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='/opt/genestack/kustomize/k8s-dashboard') }}"
+        apply: true
