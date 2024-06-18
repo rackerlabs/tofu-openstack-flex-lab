@@ -112,3 +112,18 @@
       kubernetes.core.k8s:
         definition: "{{ lookup('kubernetes.core.kustomize', dir='/opt/genestack/kustomize/k8s-dashboard') }}"
         apply: true
+
+- name: Deploy prometheus
+  hosts: localhost
+  connection: local
+  tags: deploy_prometheus
+  tasks:
+    # Not happy about this but deploying prometheus fails on the first run.
+    # TODO: Find a way to do this cleanly using the kubernetes.core.k8s module
+    - name: Deploy prometheus # noqa: no-changed-when risky-shell-pipe
+      ansible.builtin.shell:
+        cmd: kubectl kutomize --enable-helm /opt/genestack/kustomize/prometheus | kubectl apply --server-side -f -
+      retries: 2
+      delay: 2
+      register: deploy_prometheus_result
+      until: deploy_prometheus_result is not failed
