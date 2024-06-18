@@ -122,8 +122,21 @@
     # TODO: Find a way to do this cleanly using the kubernetes.core.k8s module
     - name: Deploy prometheus # noqa: no-changed-when risky-shell-pipe
       ansible.builtin.shell:
-        cmd: kubectl kutomize --enable-helm /opt/genestack/kustomize/prometheus | kubectl apply --server-side -f -
+        cmd: kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus | kubectl apply --server-side -f -
       retries: 2
       delay: 2
       register: deploy_prometheus_result
       until: deploy_prometheus_result is not failed
+
+- name: Make helm charts
+  hosts: localhost
+  connection: local
+  tags: make_helm_charts
+  tasks:
+    - name: Make helm charts
+      community.general.make:
+        chdir: "{{ item }}"
+        target: all
+      loop:
+        - /opt/genestack/submodules/openstack-helm
+        - /opt/genestack/submodules/openstack-helm-infra
