@@ -140,3 +140,18 @@
       loop:
         - /opt/genestack/submodules/openstack-helm
         - /opt/genestack/submodules/openstack-helm-infra
+
+### Infrastructre section
+### https://docs.rackspacecloud.com/infrastructure-overview/
+
+- name: OpenStack namespace
+  hosts: localhost
+  connection: local
+  tags: openstack_namespace
+  tasks:
+    - name: Create OpenStack namespace
+      kubernetes.core.k8s:
+        name: openstack
+        api_version: v1
+        kind: Namespace
+        state: present
