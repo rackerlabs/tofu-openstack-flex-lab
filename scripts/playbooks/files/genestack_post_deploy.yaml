@@ -11,8 +11,7 @@
           metadata:
             name: "{{ inventory_hostname }}"
             labels:
-              role: storage
-              openstack-storage-node: enabled
+              role: storage-node
       delegate_to: localhost
 
 - name: Label control plane nodes
@@ -140,6 +139,90 @@
       loop:
         - /opt/genestack/submodules/openstack-helm
         - /opt/genestack/submodules/openstack-helm-infra
+
+## Ceph internal section
+## https://docs.rackspacecloud.com/storage-ceph-rook-internal/
+- name: Ceph internal
+  hosts: localhost
+  connection: local
+  tags: ceph_internal
+  tasks:
+    - name: Hack to set image for the operator
+      ansible.builtin.lineinfile:
+        dest: "/opt/genestack/kustomize/rook-operator/operator.yaml"
+        search_string: 'image: rook/ceph:master'
+        line: "          image: rook/ceph:v1.13.7"
+        state: present
+
+    # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#deploy-the-rook-operator
+    # kubectl apply -k /opt/genestack/kustomize/rook-operator/
+    - name: Deploy rook operator
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-operator') }}"
+        apply: true
+        state: present
+      register: result
+
+    - name: Wait for rook operator deployment conditions
+      kubernetes.core.k8s_info:
+        name: rook-ceph-operator
+        kind: Deployment
+        namespace: rook-ceph
+        wait: true
+        wait_condition:
+          type: "{{ item.type }}"
+          reason: "{{ item.reason }}"
+          status: "True"
+      loop:
+        - { type: 'Available', reason: 'MinimumReplicasAvailable'}
+        - { type: 'Progressing', reason: 'NewReplicaSetAvailable'}
+
+    - name: Wait for rook operator pod conditions
+      kubernetes.core.k8s_info:
+        api_version: v1
+        # name: rook-ceph-operator
+        kind: Pod
+        label_selectors:
+          - app = rook-ceph-operator
+        namespace: rook-ceph
+        wait: true
+        wait_condition:
+          type: "{{ item }}"
+          status: "True"
+      loop:
+        - "Ready"
+        - "ContainersReady"
+
+    # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#deploy-the-rook-cluster
+    # kubectl apply -k /opt/genestack/kustomize/rook-cluster
+    - name: Deploy rook cluster
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-cluster') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Wait for rook cluster deployment conditions
+      kubernetes.core.k8s_info:
+        api_version: "ceph.rook.io/v1"
+        name: rook-ceph
+        kind: CephCluster
+        namespace: rook-ceph
+        wait: true
+        wait_condition:
+          type: "{{ item.type }}"
+          reason: "{{ item.reason }}"
+          status: "True"
+        wait_timeout: 900
+      loop:
+        - { type: 'Ready', reason: 'ClusterCreated'}
+
+    # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#create-storage-classes
+    # kubectl apply -k /opt/genestack/kustomize/rook-defaults
+    - name: Create storage classes
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-defaults') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
 
 ### Infrastructre section
 ### https://docs.rackspacecloud.com/infrastructure-overview/

@@ -31,6 +31,13 @@
         dest: /etc/genestack/inventory/inventory.yaml
         content: "{{ inventory_result.stdout }}"
         mode: "0644"
+    - name: Get kube config script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/get_kube_config.sh
+        src: get_kube_config.sh
+        mode: "0755"
+      become: true
+
 - name: Copy post deployment playbook to launcher
   hosts: flex_launcher
   tags: post_deploy_playbook
