@@ -42,7 +42,7 @@
         src: genestack_post_deploy.yaml
         mode: "0644"
 
-    - name: Get post deployment playbook
+    - name: Get cluster setup script
       ansible.builtin.copy:
         dest: /usr/local/bin/genestack_deploy_cluster.sh
         src: genestack_deploy_cluster.sh

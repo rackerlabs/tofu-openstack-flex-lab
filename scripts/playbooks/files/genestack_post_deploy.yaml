@@ -1,5 +1,5 @@
 ---
-- name: Label stoage nodes
+- name: Label storage nodes
   hosts: ceph_storage_nodes
   tags: label_nodes
   tasks:
@@ -18,7 +18,7 @@
   hosts: openstack_control_plane
   tags: label_nodes
   tasks:
-    - name: Label storage nodes
+    - name: Label control plane nodes
       kubernetes.core.k8s:
         definition:
           apiVersion: v1
