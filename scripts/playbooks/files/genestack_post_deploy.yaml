@@ -238,3 +238,75 @@
         api_version: v1
         kind: Namespace
         state: present
+
+
+### https://docs.rackspacecloud.com/infrastructure-mariadb/
+- name: MariaDB
+  hosts: localhost
+  connection: local
+  tags: mariadb
+  vars:
+    secret_name: mariadb
+    cluster_name: cluster.local
+  tasks:
+    - name: Get secret if exists
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ secret_name }}"
+        namespace: openstack
+      register: maraiadb_secret_output
+
+    - name: Create secret if it does not exist
+      kubernetes.core.k8s:
+        state: present
+        namespace: openstack
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: Opaque
+          metadata:
+            name: "{{ secret_name }}"
+            namespace: openstack
+          stringData:
+            root-password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=32) }}"
+            password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=32) }}"
+      when: maraiadb_secret_output.resources | length == 0
+
+    - name: Set cluster name in kustomize file
+      ansible.builtin.lineinfile:
+        path: /opt/genestack/kustomize.example/mariadb-operator/kustomization.yaml
+        regexp: "^      clusterName: cluster.local"
+        line: "      clusterName: {{ cluster_name }}"
+
+    - name: Deply mariadb operator
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/mariadb-operator', enable_helm=True) }}" # yamllint disable-line rule:line-length
+        namespace: mariadb-system
+        apply: true
+        server_side_apply:
+          field_manager: ansible
+          force_conflicts: true
+        state: present
+
+    - name: Wait for mariadb operator webhook pod conditions
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/name = mariadb-operator-webhook
+        namespace: mariadb-system
+        wait: true
+        wait_condition:
+          type: "{{ item }}"
+          status: "True"
+      loop:
+        - "Ready"
+        - "ContainersReady"
+
+    - name: Deploy the mariadb cluster
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/mariadb-cluster/base') }}" # yamllint disable-line rule:line-length
+        namespace: openstack
+        apply: true
+        state: present
