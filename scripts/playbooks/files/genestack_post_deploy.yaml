@@ -109,7 +109,7 @@
   tasks:
     - name: Deploy k8s dashboard
       kubernetes.core.k8s:
-        definition: "{{ lookup('kubernetes.core.kustomize', dir='/opt/genestack/kustomize/k8s-dashboard') }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='/opt/genestack/kustomize.example/k8s-dashboard') }}"
         apply: true
 
 - name: Deploy prometheus
@@ -121,7 +121,7 @@
     # TODO: Find a way to do this cleanly using the kubernetes.core.k8s module
     - name: Deploy prometheus # noqa: no-changed-when risky-shell-pipe
       ansible.builtin.shell:
-        cmd: kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus | kubectl apply --server-side -f -
+        cmd: kubectl kustomize --enable-helm /opt/genestack/kustomize.example/prometheus | kubectl apply --server-side -f -
       retries: 2
       delay: 2
       register: deploy_prometheus_result
@@ -149,16 +149,16 @@
   tasks:
     - name: Hack to set image for the operator
       ansible.builtin.lineinfile:
-        dest: "/opt/genestack/kustomize/rook-operator/operator.yaml"
+        dest: "/opt/genestack/kustomize.example/rook-operator/operator.yaml"
         search_string: 'image: rook/ceph:master'
         line: "          image: rook/ceph:v1.13.7"
         state: present
 
     # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#deploy-the-rook-operator
-    # kubectl apply -k /opt/genestack/kustomize/rook-operator/
+    # kubectl apply -k /opt/genestack/kustomize.example/rook-operator/
     - name: Deploy rook operator
       kubernetes.core.k8s:
-        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-operator') }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rook-operator') }}"
         apply: true
         state: present
       register: result
@@ -194,10 +194,10 @@
         - "ContainersReady"
 
     # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#deploy-the-rook-cluster
-    # kubectl apply -k /opt/genestack/kustomize/rook-cluster
+    # kubectl apply -k /opt/genestack/kustomize.example/rook-cluster
     - name: Deploy rook cluster
       kubernetes.core.k8s:
-        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-cluster') }}" # yamllint disable-line rule:line-length
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rook-cluster') }}" # yamllint disable-line rule:line-length
         apply: true
         state: present
 
@@ -217,10 +217,10 @@
         - { type: 'Ready', reason: 'ClusterCreated'}
 
     # https://docs.rackspacecloud.com/storage-ceph-rook-internal/#create-storage-classes
-    # kubectl apply -k /opt/genestack/kustomize/rook-defaults
+    # kubectl apply -k /opt/genestack/kustomize.example/rook-defaults
     - name: Create storage classes
       kubernetes.core.k8s:
-        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize/rook-defaults') }}" # yamllint disable-line rule:line-length
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rook-defaults') }}" # yamllint disable-line rule:line-length
         apply: true
         state: present
 
