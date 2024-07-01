@@ -239,6 +239,25 @@
         kind: Namespace
         state: present
 
+### https://docs.rackspacecloud.com/infrastructure-ingress/
+- name: Ingress
+  hosts: localhost
+  connection: local
+  tags: ingress
+  tasks:
+    - name: Deploy ingress controller in the ingress-nginx namespace
+      kubernetes.core.k8s:
+        namespace: ingress-nginx
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/ingress/external', enable_helm=True) }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Deploy ingress controller in the OpenStack namespace
+      kubernetes.core.k8s:
+        namespace: openstack
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/ingress/internal', enable_helm=True) }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
 
 ### https://docs.rackspacecloud.com/infrastructure-mariadb/
 - name: MariaDB
