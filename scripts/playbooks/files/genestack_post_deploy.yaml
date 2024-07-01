@@ -298,7 +298,7 @@
         regexp: "^      clusterName: cluster.local"
         line: "      clusterName: {{ cluster_name }}"
 
-    - name: Deply mariadb operator
+    - name: Deploy mariadb operator
       kubernetes.core.k8s:
         definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/mariadb-operator', enable_helm=True) }}" # yamllint disable-line rule:line-length
         namespace: mariadb-system
