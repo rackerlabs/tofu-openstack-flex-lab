@@ -329,3 +329,76 @@
         namespace: openstack
         apply: true
         state: present
+
+### https://docs.rackspacecloud.com/infrastructure-rabbitmq/#deploy-the-rabbitmq-operator
+- name: RabbitMQ
+  hosts: localhost
+  connection: local
+  tags: rabbitmq
+  tasks:
+    - name: Deploy RabbitMQ operator
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rabbitmq-operator') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Wait for RabbitMQ operator pod conditions
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/component = rabbitmq-operator
+          - app.kubernetes.io/name = rabbitmq-cluster-operator
+        namespace: rabbitmq-system
+        wait: true
+        wait_condition:
+          type: "{{ item }}"
+          status: "True"
+      loop:
+        - "Ready"
+        - "ContainersReady"
+
+    - name: Deploy RabbitMQ topology operator
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rabbitmq-topology-operator') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Wait for RabbitMQ topology operator pod conditions
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/component = rabbitmq-operator
+          - app.kubernetes.io/name = messaging-topology-operator
+        namespace: rabbitmq-system
+        wait: true
+        wait_condition:
+          type: "{{ item }}"
+          status: "True"
+      loop:
+        - "Ready"
+        - "ContainersReady"
+
+    - name: Deploy RabbitMQ cluster
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/rabbitmq-cluster/base') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Wait for rabbotmq cluster deployment conditions
+      kubernetes.core.k8s_info:
+        api_version: "rabbitmq.com/v1beta1"
+        name: rabbitmq
+        kind: RabbitmqCluster
+        namespace: openstack
+        wait: true
+        wait_condition:
+          type: "{{ item.type }}"
+          reason: "{{ item.reason }}"
+          status: "True"
+        wait_timeout: 900
+      loop:
+        - { type: 'AllReplicasReady', reason: 'AllPodsAreReady'}
+        - { type: 'ClusterAvailable', reason: 'AtLeastOneEndpointAvailable'}
+        - { type: 'ReconcileSuccess', reason: 'Success'}
