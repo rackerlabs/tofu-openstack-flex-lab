@@ -386,7 +386,7 @@
         apply: true
         state: present
 
-    - name: Wait for rabbotmq cluster deployment conditions
+    - name: Wait for rabbitmq cluster deployment conditions
       kubernetes.core.k8s_info:
         api_version: "rabbitmq.com/v1beta1"
         name: rabbitmq
@@ -402,3 +402,33 @@
         - { type: 'AllReplicasReady', reason: 'AllPodsAreReady'}
         - { type: 'ClusterAvailable', reason: 'AtLeastOneEndpointAvailable'}
         - { type: 'ReconcileSuccess', reason: 'Success'}
+
+### https://docs.rackspacecloud.com/infrastructure-memcached/#deploy-the-memcached-cluster
+- name: Memcached
+  hosts: localhost
+  connection: local
+  tags: memcached
+  tasks:
+    - name: Deploy memcached
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/memcached/base-monitoring', enable_helm=True) }}" # yamllint disable-line rule:line-length
+        apply: true
+        server_side_apply:
+          field_manager: ansible
+          force_conflicts: true
+        state: present
+
+    - name: Wait for memcached deployment conditions
+      kubernetes.core.k8s_info:
+        api_version: "autoscaling/v2"
+        name: memcached
+        kind: HorizontalPodAutoscaler
+        namespace: openstack
+        wait: true
+        wait_condition:
+          type: "{{ item.type }}"
+          reason: "{{ item.reason }}"
+          status: "True"
+        wait_timeout: 900
+      loop:
+        - { type: 'AbleToScale', reason: 'SucceededGetScale'}
