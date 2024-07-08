@@ -432,3 +432,16 @@
         wait_timeout: 900
       loop:
         - { type: 'AbleToScale', reason: 'SucceededGetScale'}
+
+### https://docs.rackspacecloud.com/infrastructure-libvirt/
+- name: Libvirt
+  hosts: localhost
+  connection: local
+  tags: libvirt
+  tasks:
+    - name: Deploy Libvirt
+      kubernetes.core.k8s:
+        namespace: openstack
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/libvirt', enable_helm=True) }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
