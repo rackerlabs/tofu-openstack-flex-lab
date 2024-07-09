@@ -445,3 +445,50 @@
         definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/libvirt', enable_helm=True) }}" # yamllint disable-line rule:line-length
         apply: true
         state: present
+
+### https://docs.rackspacecloud.com/infrastructure-ovn-setup/
+- name: Annotate network enabled nodes
+  hosts: ovn_network_nodes:nova_compute_nodes
+  tags: ovn
+  tasks:
+    - name: Annotate network enabled nodes
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Node
+          metadata:
+            name: "{{ inventory_hostname }}"
+            annotations:
+              ovn.openstack.org/int_bridge: br-int
+              ovn.openstack.org/bridges: br-ex
+              ovn.openstack.org/ports: br-ex:bond1
+              ovn.openstack.org/mappings: physnet1:br-ex
+              ovn.openstack.org/availability_zones: nova
+              ovn.openstack.org/gateway: enabled
+      delegate_to: localhost
+
+### https://docs.rackspacecloud.com/infrastructure-ovn-setup/#run-the-ovn-integration
+- name: Apply OVN integration
+  hosts: localhost
+  tags: ovn
+  tasks:
+    - name: Apply OVN integration
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='/opt/genestack/kustomize.example/ovn') }}" # yamllint disable-line rule:line-length
+        apply: true
+        state: present
+
+    - name: Patch kube-ovn-deployment nodeSelector
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Deployment
+          metadata:
+            namespace: kube-system
+            name: kube-ovn-controller
+          spec:
+            template:
+              spec:
+                nodeSelector:
+                  kube-ovn/role: master
+                  kubernetes.io/os: linux
