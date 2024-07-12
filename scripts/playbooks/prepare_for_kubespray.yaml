@@ -7,7 +7,7 @@
       ansible.builtin.lineinfile:
         dest: /etc/hosts
         regexp: '.*{{ item }}$'
-        line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{item}}"
+        line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{ item }}"
         state: present
       when: hostvars[item].ansible_host is defined
       with_items: "{{ groups.all }}"
