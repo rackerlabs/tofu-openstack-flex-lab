@@ -492,3 +492,48 @@
                 nodeSelector:
                   kube-ovn/role: master
                   kubernetes.io/os: linux
+
+- name: MetalLB config
+  hosts: localhost
+  tags: metallb
+  tasks:
+    - name: Get MetalLB vips from metadata
+      ansible.builtin.uri:
+        url: http://169.254.169.254/openstack/latest/meta_data.json
+      register: metadata
+
+    - name: Set MetalLB fact from openstack metadata
+      ansible.builtin.set_fact:
+        metallb_floating_ips: "{{ metadata.json.meta.metallb_flips | to_json }}"
+
+    - name: Add floating ip addresses to IPAddressPool
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: openstack-external
+            namespace: metallb-system
+          spec:
+            addresses: "{{ metadata.json.meta.metallb_flips }}"
+            # addresses: "{{ metallb_floating_ips }}"
+            autoAssign: false
+
+    - name: Apply L2Advertisements for MetalLB
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'metallb-advertisements.yml.j2') }}"
+
+    - name: Patch service ingress-openstack-internal-ingress-nginx-controller
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            namespace: openstack
+            name: ingress-openstack-internal-ingress-nginx-controller
+            annotations:
+              metallb.univers.tf/allow-shared-ip: openstack-external-svc
+              metallb.universe.tf/address-pool: openstack-external
+          spec:
+            type: LoadBalancer
