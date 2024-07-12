@@ -75,12 +75,34 @@ tofu apply -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/
 
 Once you `apply` the tofu config you will be given the ip address of your launcher node.  Also thanks to @luke8738 and some fancy cloudinit configs the launcher nodes has what you need isntalled and you are automatically in the genestack virtualenv.  Log into the launcher node and `cat /etc/motd` for details. 
 
-### Populate `/etc/hosts` in your cluster and put inventory on the launcher node
-An ansible playbook along with a dynamic inventory script will populate the `/etc/hosts` file and drop the `/etc/genestack/inventory/inventory.yaml` file on the launcher node.
+### Prepare for kubespray
+
+The `prepare_for_kubespray.yaml` playbook as the name implies prepare the launcher node to run kubespray.  Inventory based on tofu/terraform, the `genestack_post_deploy.yaml` playbook and helper scripts are all copied to the launcher node.
 
 ```bash
 OS_CLOUD=rxt-sjc-example ansible-playbook -i scripts/lab_inventory.py scripts/playbooks/prepare_for_kubespray.yaml -u ubuntu
 ```
 
 ### time for kubespray
-Log into your launcher node and follow the instructions at https://docs.rackspacecloud.com/genestack-getting-started/
+
+The steps here closely follow the instructions at [genestack getting started](https://docs.rackspacecloud.com/genestack-getting-started/).
+
+From here log into the launcher node to complete the deploy
+```
+ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
+ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
+cd /opt/genestack/ansible/playbooks && ansible-playbook host-setup.yml
+cd /opt/genestack/submodules/kubespray && ansible-playbook cluster.yml -b -f 30 -T 30
+```
+
+The kubespray deploy commonly takes about 30 minutes or so.  Once it is finished a helper script is in place to copy the kubeconfig to the launcher node:
+
+```
+get_kube_config.sh
+```
+
+Now that the kubeconfig is in place run the `genestack_post_deploy.yaml` file as ubuntu in the ubuntu home directory.  It is best to provide the `letsencrypt_email` variable on the command line so the playbook does not stop and prompt you in the middle of the run.
+
+```
+ansible-playbook ~/genestack_post_deploy.yaml -e "letsencrypt_email=<VALID EMAIL ADDRESS"
+```
