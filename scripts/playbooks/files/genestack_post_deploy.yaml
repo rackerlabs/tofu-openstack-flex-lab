@@ -259,6 +259,35 @@
         apply: true
         state: present
 
+### https://docs.rackspacecloud.com/infrastructure-letsencrypt/
+- name: LetsEncrypt
+  hosts: localhost
+  connection: local
+  tags: letsencrypt
+  vars_prompt:
+    - name: letsencrypt_email
+      prompt: Email for letsencrypt?
+      private: false
+  tasks:
+    - name: Apply LetsEncrypt cluster issuer manifest
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-prod
+          spec:
+            acme:
+              server: https://acme-v02.api.letsencrypt.org/directory
+              email: "{{ letsencrypt_email }}"
+              privateKeySecretRef:
+                name: letsencrypt-prod
+              solvers:
+                - http01:
+                    ingress:
+                      ingressClassName: nginx
+
 ### https://docs.rackspacecloud.com/infrastructure-mariadb/
 - name: MariaDB
   hosts: localhost
