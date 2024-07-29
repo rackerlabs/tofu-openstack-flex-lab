@@ -290,9 +290,13 @@
               privateKeySecretRef:
                 name: letsencrypt-prod
               solvers:
-                - http01:
-                    ingress:
-                      ingressClassName: nginx
+              - http01:
+                  gatewayHTTPRoute:
+                    parentRefs:
+                    - group: gateway.networking.k8s.io
+                      kind: Gateway
+                      name: flex-gateway
+                      namespace: nginx-gateway
 
 ### https://docs.rackspacecloud.com/infrastructure-mariadb/
 - name: MariaDB
