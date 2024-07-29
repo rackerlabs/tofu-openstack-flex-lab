@@ -239,6 +239,32 @@
         kind: Namespace
         state: present
 
+### https://docs.rackspacecloud.com/infrastructure-gateway-api/
+
+- name: GatewayAPI
+  hosts: localhost
+  connection: local
+  tags: gatewayapi
+  tasks:
+    - name: Create nginx-gateway namespace
+      kubernetes.core.k8s:
+        name: nginx-gateway
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install Gateway API resources
+      kubernetes.core.k8s:
+        definition: "{{ lookup('kubernetes.core.kustomize', binary_path='/usr/local/bin/kubectl', dir='https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.3.0', enable_helm=False) }}" # yamllint disable-line rule:line-length
+
+    - name: Install the NGINX Gateway Fabric controller
+      kubernetes.core.helm:
+        name: nginx-gateway-fabric
+        namespace: nginx-gateway
+        chart_ref: /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
+        values_files:
+          - /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+
 ### https://docs.rackspacecloud.com/infrastructure-letsencrypt/
 - name: LetsEncrypt
   hosts: localhost
@@ -532,17 +558,3 @@
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', 'metallb-advertisements.yml.j2') }}"
-
-    - name: Patch service ingress-openstack-internal-ingress-nginx-controller
-      kubernetes.core.k8s:
-        definition:
-          apiVersion: v1
-          kind: Service
-          metadata:
-            namespace: openstack
-            name: ingress-openstack-internal-ingress-nginx-controller
-            annotations:
-              metallb.univers.tf/allow-shared-ip: openstack-external-svc
-              metallb.universe.tf/address-pool: openstack-external
-          spec:
-            type: LoadBalancer
