@@ -1,16 +1,22 @@
 ---
-- name: Add cluster to etc hosts
+- name: Gather IP addresses
   hosts: all
   tags: setup_hosts_file
   tasks:
-    - name: Add IP address of all hosts to all hosts
-      ansible.builtin.lineinfile:
+    - name: Gather IP address and hostnames of all hosts
+      set_fact:
+        host_entries: |
+          {% for item in groups['all'] %}
+          {% if hostvars[item].ansible_host is defined %}
+          {{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{ item }}
+          {% endif %}
+          {% endfor %}
+    - name: Add all hosts to /etc/hosts
+      ansible.builtin.blockinfile:
         dest: /etc/hosts
-        regexp: '.*{{ item }}$'
-        line: "{{ hostvars[item].ansible_host }} {{ item.split('.')[0] }} {{ item }}"
+        block: "{{ host_entries }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
         state: present
-      when: hostvars[item].ansible_host is defined
-      with_items: "{{ groups.all }}"
       become: true
 - name: Create inventory on flex_launcher
   hosts: flex_launcher
