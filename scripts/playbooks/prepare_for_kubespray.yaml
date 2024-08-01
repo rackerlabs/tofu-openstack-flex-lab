@@ -15,7 +15,7 @@
       ansible.builtin.blockinfile:
         dest: /etc/hosts
         block: "{{ host_entries }}"
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        marker: "# Ansible inventory hosts {mark}"
         state: present
       become: true
 - name: Create inventory on flex_launcher
