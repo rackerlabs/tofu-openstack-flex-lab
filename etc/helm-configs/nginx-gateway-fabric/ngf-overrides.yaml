@@ -1,0 +1,4 @@
+service:
+  annotations:
+    "metallb.universe.tf/address-pool": "gateway-external"
+    "metallb.universe.tf/allow-shared-ip": "gateway-external-svc"

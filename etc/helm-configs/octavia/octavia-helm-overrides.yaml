@@ -1,0 +1,278 @@
+_region: &region LAB1
+
+pod:
+  resources:
+    enabled: false
+
+endpoints:
+  compute:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: nova.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute_metadata:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: metadata.your.domain.tld
+    port:
+      metadata:
+        public: 443
+    scheme:
+      public: https
+  compute_novnc_proxy:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: novnc.your.domain.tld
+    port:
+      novnc_proxy:
+        public: 443
+    scheme:
+      public: https
+  cloudformation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudformation.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudwatch.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  dashboard:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: horizon.your.domain.tld
+    port:
+      web:
+        public: 443
+    scheme:
+      public: https
+  metric:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: gnocchi.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      cinder:
+        region_name: *region
+      ceilometer:
+        region_name: *region
+      glance:
+        region_name: *region
+      gnocchi:
+        region_name: *region
+      heat:
+        region_name: *region
+      heat_trustee:
+        region_name: *region
+      heat_stack_user:
+        region_name: *region
+      ironic:
+        region_name: *region
+      neutron:
+        region_name: *region
+      nova:
+        region_name: *region
+      placement:
+        region_name: *region
+      octavia:
+        region_name: *region
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: keystone.your.domain.tld
+    port:
+      api:
+        public: 443
+        admin: 80
+    scheme:
+      public: https
+  ingress:
+    port:
+      ingress:
+        public: 443
+  image:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: glance.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  load_balancer:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: octavia.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  network:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: neutron.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  orchestration:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: heat.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  placement:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: placement.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volume:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev3:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.your.domain.tld
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+
+manifests:
+  secret_ingress_tls: true
+
+bootstrap:
+  structured:
+    images: {}
+
+network:
+  api:
+    ingress:
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+volume:
+  class_name: general-multi-attach
+  size: 60Gi
+
+# BEGIN Prometheus/Alertmanager PVC
+storageSpec:
+   volumeClaimTemplate:
+     spec:
+       resources:
+         requests:
+           storage: 60Gi
+# END Prometheus/Alertmanager PVC
+
+conf:
+  nova:
+    DEFAULT:
+      cpu_allocation_ratio: 6.0
+    api:
+      vendordata_providers: ['StaticJSON', 'DynamicJSON']
+      vendordata_dynamic_targets: ['platform_services@https://add-ons.api.manage.rackspace.com/v2/openstack/vendordata/sjc3/']
+    vendordata_dynamic_auth:
+      auth_type: password
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      project_domain_name: service
+      project_name: service
+      user_domain_name: service
+      username: nova
+    workarounds:
+      skip_cpu_compare_on_dest: true
+      skip_cpu_compare_at_startup: true
+  neutron:
+    ovn:
+      dns_servers: "216.109.154.188,216.109.154.189"
+  octavia:
+    certificates:
+      ca_certificate: /etc/octavia/certs/server_ca.cert.pem
+      ca_private_key: /etc/octavia/certs/private/server_ca.key.pem
+    controller_worker:
+      client_ca: /etc/octavia/certs/client_ca.cert.pem
+      amp_image_owner_id: 8fb86e74be8d49f3befde1f647d9f2ef
+      amp_secgroup_list: 0a640a89-8843-40da-8153-5c9b3567fb2a
+      #amp_flavor_id: 97ced80f-a3b3-43aa-ae6d-2cce71193c6f
+      amp_flavor_id: d47e32f7-165c-442f-89c5-cbc010279b13
+      amp_boot_network_list: 6430f710-514e-4c45-a6af-1aca074d7569
+      amp_image_tag: amphora
+      amp_ssh_key_name: amphora-ssh-key
+    haproxy_amphora:
+      client_cert: /etc/octavia/certs/private/client.key-and-cert.pem
+      server_ca: /etc/octavia/certs/server_ca.cert.pem
+    health_manager:
+      bind_port: 5555
+      bind_ip: 0.0.0.0
+      controller_ip_port_list: 172.16.29.128:5555, 172.16.29.201:5555, 172.16.29.114:5555
+  plugins:
+    ml2_conf:
+      ovn:
+        dns_servers: "216.109.154.188,216.109.154.189"
+  postgresql:
+    shared_buffers: '16GB'
+  glance:
+    glance_store:
+      swift_auth_address: "https://tempauth.your.domain.tld/auth/v1.0"
+      swift_user: "glance:glance-store"
+      swift_auth_version: 1
+
