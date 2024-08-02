@@ -23,7 +23,7 @@ runcmd:
     && sed -i 's/genestack repo - pending/genestack repo - cloned/' /etc/motd
     || sed -i 's/genestack repo - pending/genestack repo - missing/' /etc/motd
   - chown -R ubuntu:ubuntu /opt/genestack
-  - [su, ubuntu, -c, "export GENESTACK_PRODUCT=openstack-flex; sudo -E /opt/genestack/bootstrap.sh"]
+  - [su, ubuntu, -c, "export GENESTACK_PRODUCT=openstack-flex; sudo -E /opt/genestack/bootstrap.sh > /home/ubuntu/bootstrap.log 2>&1"]
   - >
     chown -R ubuntu:ubuntu /etc/genestack /home/ubuntu /opt/genestack
     && sed -i 's/genestack bootstrap - pending/genestack bootstrap - complete/' /etc/motd
