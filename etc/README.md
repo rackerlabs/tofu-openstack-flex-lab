@@ -18,10 +18,12 @@ Adds your custom DNS domain, and desired environment (region) name for keystone 
 Usage: ./lab_domainer.sh --domain <domain> [--environment <environment> default: LAB1]
 ```
 
-## secrets.yaml
+## secrets.example.yaml
 
-Changes to this file should not be committed, its presence is to serve as
-an example.
+Copy this to `/etc/genestack/secrets.yaml` if needing to supply 
+non-standard secrets to helm during deployments. We have a few instances of 
+this at the moment. Hopefully use of this goes away at some point. **Be 
+careful not to commit secrets.yaml.**
 
 ## Helm install examples
 
