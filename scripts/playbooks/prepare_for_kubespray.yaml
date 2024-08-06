@@ -48,6 +48,12 @@
         src: genestack_post_deploy.yaml
         mode: "0644"
 
+    - name: Get collections post deployment playbook
+      ansible.builtin.copy:
+        dest: /home/ubuntu/genestack_collections_playbook.yaml
+        src: genestack_collections_playbook.yaml
+        mode: "0644"
+
     - name: Create templates directory
       ansible.builtin.file:
         dest: /home/ubuntu/templates/
