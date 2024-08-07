@@ -65,39 +65,25 @@
   hosts: localhost
   connection: local
   tags: deploy_dashboard
-  tasks:
-    - name: Deploy k8s dashboard
-      kubernetes.core.k8s:
-        definition: "{{ lookup('kubernetes.core.kustomize', dir='/opt/genestack/base-kustomize/k8s-dashboard') }}"
-        apply: true
+  roles:
+    - rackspace.genestack.k8s_dashboard
+  tasks: []
 
 - name: Deploy prometheus
   hosts: localhost
   connection: local
   tags: deploy_prometheus
-  tasks:
-    # Not happy about this but deploying prometheus fails on the first run.
-    # TODO: Find a way to do this cleanly using the kubernetes.core.k8s module
-    - name: Deploy prometheus # noqa: no-changed-when risky-shell-pipe
-      ansible.builtin.shell:
-        cmd: kubectl kustomize --enable-helm /opt/genestack/base-kustomize/prometheus | kubectl apply --server-side -f -
-      retries: 2
-      delay: 2
-      register: deploy_prometheus_result
-      until: deploy_prometheus_result is not failed
+  roles:
+    - rackspace.genestack.prometheus
+  tasks: []
 
 - name: Make helm charts
   hosts: localhost
   connection: local
   tags: make_helm_charts
-  tasks:
-    - name: Make helm charts
-      community.general.make:
-        chdir: "{{ item }}"
-        target: all
-      loop:
-        - /opt/genestack/submodules/openstack-helm
-        - /opt/genestack/submodules/openstack-helm-infra
+  roles:
+    - rackspace.genestack.make_helm_charts
+  tasks: []
 
 ## Ceph internal section
 ## https://docs.rackspacecloud.com/storage-ceph-rook-internal/
