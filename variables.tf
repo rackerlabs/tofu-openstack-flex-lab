@@ -24,7 +24,7 @@ variable "kubernetes_image" {
 variable "kubernetes_flavor" {
   type = string
   description = "Flavor name for kubernetes nodes"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "network_count" {
@@ -42,7 +42,7 @@ variable "network_image" {
 variable "network_flavor" {
   type = string
   description = "Flavor name for network nodes"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "controller_count" {
@@ -60,7 +60,7 @@ variable "controller_image" {
 variable "controller_flavor" {
   type = string
   description = "Flavor name for controller"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "worker_count" {
@@ -78,7 +78,7 @@ variable "worker_image" {
 variable "worker_flavor" {
   type = string
   description = "Flavor name for workers"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "compute_count" {
@@ -96,7 +96,7 @@ variable "compute_image" {
 variable "compute_flavor" {
   type = string
   description = "Flavor name for compute nodes"
-  default = "m1.extra_large"
+  default = "gp.0.4.16"
 }
 
 variable "storage_count" {
@@ -114,7 +114,7 @@ variable "storage_image" {
 variable "storage_flavor" {
   type = string
   description = "Flavor name for storage nodes"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "ceph_count" {
@@ -132,7 +132,7 @@ variable "ceph_image" {
 variable "ceph_flavor" {
   type = string
   description = "Flavor name for ceph nodes"
-  default = "m1.large"
+  default = "gp.0.4.8"
 }
 
 variable "bastion_image" {
@@ -144,7 +144,7 @@ variable "bastion_image" {
 variable "bastion_flavor" {
   type = string
   description = "Flavor name for bastion node"
-  default = "m1.medium"
+  default = "gp.0.4.4"
 }
 
 variable "cluster_name" {
