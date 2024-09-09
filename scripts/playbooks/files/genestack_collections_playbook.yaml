@@ -117,7 +117,7 @@
   connection: local
   tags: gatewayapi
   roles:
-    - rackspace.genestack.galaxyapi
+    - rackspace.genestack.gatewayapi
   tasks: []
 
 # ### https://docs.rackspacecloud.com/infrastructure-letsencrypt/
