@@ -200,3 +200,10 @@
   roles:
     - rackspace.genestack.metallb
   tasks: []
+
+- name: Deploy keystone
+  hosts: localhost
+  tags: keystone
+  roles:
+    - rackspace.genestack.keystone
+  tasks: []
