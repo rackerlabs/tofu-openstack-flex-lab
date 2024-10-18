@@ -42,30 +42,6 @@
   hosts: flex_launcher
   tags: post_deploy_playbook
   tasks:
-    - name: Get post deployment playbook
-      ansible.builtin.copy:
-        dest: /home/ubuntu/genestack_post_deploy.yaml
-        src: genestack_post_deploy.yaml
-        mode: "0644"
-
-    - name: Get collections post deployment playbook
-      ansible.builtin.copy:
-        dest: /home/ubuntu/genestack_collections_playbook.yaml
-        src: genestack_collections_playbook.yaml
-        mode: "0644"
-
-    - name: Create templates directory
-      ansible.builtin.file:
-        dest: /home/ubuntu/templates/
-        mode: "0755"
-        state: directory
-
-    - name: Get L2Advertisements template
-      ansible.builtin.copy:
-        dest: /home/ubuntu/templates/metallb-advertisements.yml.j2
-        src: metallb-advertisements.yml.j2
-        mode: "0644"
-
     - name: Get cluster setup script
       ansible.builtin.copy:
         dest: /usr/local/bin/genestack_deploy_cluster.sh
