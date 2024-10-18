@@ -1,6 +1,8 @@
 ## openstack-flex-lab
 I am using opentofu but I call it terraform alot still :/
 
+This builds out a lab environment as described at https://docs.rackspacecloud.com/ in an already available openstack endpoint. Once tofu has completed you can follow the steps in the linked documentation.
+
 ### requirements
 
 - A python virtual environment
@@ -35,19 +37,6 @@ As mentioned before you need an `$HOME/.config/openstack/clouds.yaml` file confi
 
 ```yaml
 clouds:
-  rxt-dfw-example:
-    # note: $YOUR_PROJECT is the account DDI with Flex, so XXXXXXX_Flex
-    auth:
-      auth_url: https://keystone.dfw-ospcv2-staging.ohthree.com/v3
-      project_name: < DDI >_Flex # $YOUR_PROJECT
-      project_domain_name: rackspace_cloud_domain
-      username: < CLOUD USERNAME >
-      password: < CLOUD PASSWORD >
-      user_domain_name: rackspace_cloud_domain
-    region_name: DFW3
-    interface: public
-    identity_api_version: "3"
-    insecure: true
   rxt-sjc-example:
     # note: $YOUR_PROJECT is the account DDI with Flex, so XXXXXXX_Flex
     auth:
