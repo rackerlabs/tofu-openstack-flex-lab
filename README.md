@@ -14,7 +14,7 @@ This builds out a lab environment as described at https://docs.rackspacecloud.co
 For later use of they dynamic inventory script a python virtual environment is needed. Create your virtual environment the way you see fit and install the requirements.
 
 ```bash
-pip isntall -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### tofu
