@@ -29,6 +29,22 @@ Once you have opentofu installed initialize it so that required plugins are inst
 ```bash
 tofu init --upgrade
 ```
+> **ℹ️ Info:** If you encountered the following error on M1 or M2 MacBook you need to follow the steps provided below and use terraform instead of tofu
+```bash
+│ Error: Incompatible provider version
+│
+│ Provider registry.opentofu.org/hashicorp/template v2.2.0 does not have a package available for your current platform, darwin_arm64.
+│
+│ Provider releases are separate from OpenTofu CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.
+```
+> steps to resolve the issue:
+```bash
+brew install kreuzwerker/taps/m1-terraform-provider-helper
+m1-terraform-provider-helper install hashicorp/template -v v2.2.0
+m1-terraform-provider-helper activate
+terraform init --upgrade
+```
+
 At this point you can plan if you want to see what will be done but ultimatelay you will need to `apply`.  There are two requried variables to be passed:
 
 - `cloud`
@@ -64,6 +80,25 @@ tofu apply -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/
 
 Once you `apply` the tofu config you will be given the ip address of your launcher node.  Also thanks to @luke8738 and some fancy cloudinit configs the launcher nodes has what you need isntalled and you are automatically in the genestack virtualenv.  Log into the launcher node and `cat /etc/motd` for details. 
 
+#### ssh config to use the gateway
+
+Once you have deployed the infra, its time to set your private key and use it to connect through the gateway. Add the following to `$HOME/.ssh/config`
+
+```bash
+Host <YOUR_LAUNCHER_NODE_IP_RANGE>
+  User ubuntu
+  IdentityFile ~/.ssh/id_rsa
+  ProxyCommand ssh -A gu=<YOUR_USERNAME>@ubuntu@%h@<GATEWAY_ADDRESS> nc %h %p
+  ForwardAgent yes
+  ForwardX11Trusted yes
+  ProxyCommand none
+  ControlMaster auto
+  ControlPath ~/.ssh/master-%r@%h:%p
+  TCPKeepAlive yes
+  StrictHostKeyChecking no
+  ServerAliveInterval 300
+```
+
 ### Prepare for kubespray
 
 The `prepare_for_kubespray.yaml` playbook as the name implies prepare the launcher node to run kubespray.  Inventory based on tofu/terraform, the `genestack_post_deploy.yaml` playbook and helper scripts are all copied to the launcher node.
@@ -95,3 +130,7 @@ Now that the kubeconfig is in place run the `genestack_post_deploy.yaml` file as
 ```
 ansible-playbook ~/genestack_post_deploy.yaml -e "letsencrypt_email=<VALID EMAIL ADDRESS"
 ```
+
+### Deploying GeneStack
+
+You need to follow the [GeneStack doc](https://docs.rackspacecloud.com/openstack-overview/) from this point.
