@@ -48,7 +48,7 @@ variable "network_flavor" {
 variable "controller_count" {
   type = number
   description = "number of controllers"
-  default = 5
+  default = 3
 }
 
 variable "controller_image" {
@@ -66,7 +66,7 @@ variable "controller_flavor" {
 variable "worker_count" {
   type = number
   description = "number of workers"
-  default = 7
+  default = 2
 }
 
 variable "worker_image" {
@@ -84,7 +84,7 @@ variable "worker_flavor" {
 variable "compute_count" {
   type = number
   description = "Number of compute nodes"
-  default = 4
+  default = 2
 }
 
 variable "compute_image" {
