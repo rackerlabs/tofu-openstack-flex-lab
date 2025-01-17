@@ -66,7 +66,7 @@ variable "controller_flavor" {
 variable "worker_count" {
   type = number
   description = "number of workers"
-  default = 2
+  default = 4
 }
 
 variable "worker_image" {
