@@ -220,9 +220,6 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
   network {
     name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
-  network {
-    name = openstack_networking_network_v2.osflex-neutron-overlay.name
-  }
   metadata = {
     hostname = format("kubernetes%02d", count.index + 1)
     group    = "openstack-flex"
@@ -262,9 +259,6 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
   network {
     name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
-  network {
-    name = openstack_networking_network_v2.osflex-neutron-overlay.name
-  }
   metadata = {
     hostname     = format("controller%02d", count.index + 1)
     group        = "openstack-flex"
@@ -303,9 +297,6 @@ resource "openstack_compute_instance_v2" "openstack-worker" {
   }
   network {
     name = openstack_networking_network_v2.osflex-k8s-overlay.name
-  }
-  network {
-    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname     = format("worker%02d", count.index + 1)
@@ -430,9 +421,6 @@ resource "openstack_compute_instance_v2" "storage-node" {
   network {
     name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
-  network {
-    name = openstack_networking_network_v2.osflex-neutron-overlay.name
-  }
   metadata = {
     hostname     = format("storage%02d", count.index + 1)
     group        = "openstack-flex"
@@ -471,9 +459,6 @@ resource "openstack_compute_instance_v2" "ceph-node" {
   }
   network {
     name = openstack_networking_network_v2.osflex-k8s-overlay.name
-  }
-  network {
-    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname = format("ceph%02d", count.index + 1)
