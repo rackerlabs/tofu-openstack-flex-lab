@@ -24,8 +24,8 @@ data "openstack_networking_network_v2" "external-network" {
 }
 
 # Create a router
-resource "openstack_networking_router_v2" "openstack-flex-router" {
-  name                = "openstack-flex-router"
+resource "openstack_networking_router_v2" "osflex-router" {
+  name                = "osflex-router"
   admin_state_up      = true
   external_network_id = data.openstack_networking_network_v2.external-network.id
 }
@@ -120,17 +120,17 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
 
 ## Management network
 # Create management network
-resource "openstack_networking_network_v2" "openstack-flex" {
-  name                  = "openstack-flex"
+resource "openstack_networking_network_v2" "osflex-mgmt" {
+  name                  = "osflex-mgmt"
   admin_state_up        = "true"
   external              = false
   port_security_enabled = true
 }
 
 # Create management subnet
-resource "openstack_networking_subnet_v2" "openstack-flex-subnet" {
-  name        = "openstack-flex-subnet"
-  network_id  = openstack_networking_network_v2.openstack-flex.id
+resource "openstack_networking_subnet_v2" "osflex-mgmt-subnet" {
+  name        = "osflex-mgmt-subnet"
+  network_id  = openstack_networking_network_v2.osflex-mgmt.id
   cidr        = "172.31.0.0/22"
   ip_version  = 4
   enable_dhcp = true
@@ -141,43 +141,43 @@ resource "openstack_networking_subnet_v2" "openstack-flex-subnet" {
 }
 
 # Create management router interface
-resource "openstack_networking_router_interface_v2" "openstack-flex-router-interface" {
-  router_id = openstack_networking_router_v2.openstack-flex-router.id
-  subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+resource "openstack_networking_router_interface_v2" "osflex-router-interface" {
+  router_id = openstack_networking_router_v2.osflex-router.id
+  subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
 }
 
-## Internal Network
-# Create internal network
-resource "openstack_networking_network_v2" "openstack-flex-internal" {
-  name                  = "openstack-flex-internal"
+## K8s Overlay Network
+# Create K8s Overlay Network
+resource "openstack_networking_network_v2" "osflex-k8s-overlay" {
+  name                  = "osflex-k8s-overlay"
   admin_state_up        = "true"
   external              = false
   port_security_enabled = false
 }
 
-# Create internal subnet
-resource "openstack_networking_subnet_v2" "openstack-flex-subnet-internal" {
-  name        = "openstack-flex-subnet-internal"
-  network_id  = openstack_networking_network_v2.openstack-flex-internal.id
+# Create K8s Overlay Subnet
+resource "openstack_networking_subnet_v2" "osflex-k8s-overlay-subnet" {
+  name        = "osflex-k8s-overlay-subnet"
+  network_id  = openstack_networking_network_v2.osflex-k8s-overlay.id
   cidr        = "192.168.0.0/22"
   no_gateway  = true
   ip_version  = 4
   enable_dhcp = false
 }
 
-## Compute Network
-# Create compute network
-resource "openstack_networking_network_v2" "openstack-flex-compute" {
-  name                  = "openstack-flex-compute"
+## Neutron Overlay Network
+# Create Neutron Tenant Overlay Network
+resource "openstack_networking_network_v2" "osflex-neutron-overlay" {
+  name                  = "osflex-neutron-overlay"
   admin_state_up        = "true"
   external              = false
   port_security_enabled = false
 }
 
-# Create compute subnet
-resource "openstack_networking_subnet_v2" "openstack-flex-subnet-compute" {
-  name        = "openstack-flex-subnet-compute"
-  network_id  = openstack_networking_network_v2.openstack-flex-compute.id
+# Create Neutron Tenant Overlay Subnet
+resource "openstack_networking_subnet_v2" "osflex-neutron-overlay-subnet" {
+  name        = "osflex-neutron-overlay-subnet"
+  network_id  = openstack_networking_network_v2.osflex-neutron-overlay.id
   cidr        = "192.168.100.0/22"
   no_gateway  = true
   ip_version  = 4
@@ -193,11 +193,11 @@ resource "openstack_compute_keypair_v2" "mykey" {
 resource "openstack_networking_port_v2" "kubernetes-ports" {
   count              = var.kubernetes_count
   name               = format("kubernetes%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -218,10 +218,10 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
     port = openstack_networking_port_v2.kubernetes-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname = format("kubernetes%02d", count.index + 1)
@@ -235,11 +235,11 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
 resource "openstack_networking_port_v2" "controller-ports" {
   count              = var.controller_count
   name               = format("controller%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -260,10 +260,10 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
     port = openstack_networking_port_v2.controller-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname     = format("controller%02d", count.index + 1)
@@ -277,11 +277,11 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
 resource "openstack_networking_port_v2" "worker-ports" {
   count              = var.worker_count
   name               = format("worker%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -302,10 +302,10 @@ resource "openstack_compute_instance_v2" "openstack-worker" {
     port = openstack_networking_port_v2.worker-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname     = format("worker%02d", count.index + 1)
@@ -319,11 +319,11 @@ resource "openstack_compute_instance_v2" "openstack-worker" {
 resource "openstack_networking_port_v2" "compute-ports" {
   count              = var.compute_count
   name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -344,10 +344,10 @@ resource "openstack_compute_instance_v2" "compute-node" {
     port = openstack_networking_port_v2.compute-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname     = format("compute%02d", count.index + 1)
@@ -361,11 +361,11 @@ resource "openstack_compute_instance_v2" "compute-node" {
 resource "openstack_networking_port_v2" "network-ports" {
   count              = var.network_count
   name               = format("network%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -386,10 +386,10 @@ resource "openstack_compute_instance_v2" "network-node" {
     port = openstack_networking_port_v2.network-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname = format("network%02d", count.index + 1)
@@ -403,11 +403,11 @@ resource "openstack_compute_instance_v2" "network-node" {
 resource "openstack_networking_port_v2" "storage-ports" {
   count              = var.storage_count
   name               = format("storage%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -428,10 +428,10 @@ resource "openstack_compute_instance_v2" "storage-node" {
     port = openstack_networking_port_v2.storage-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname     = format("storage%02d", count.index + 1)
@@ -445,11 +445,11 @@ resource "openstack_compute_instance_v2" "storage-node" {
 resource "openstack_networking_port_v2" "ceph-ports" {
   count              = var.storage_count
   name               = format("ceph%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -470,10 +470,10 @@ resource "openstack_compute_instance_v2" "ceph-node" {
     port = openstack_networking_port_v2.ceph-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    name = openstack_networking_network_v2.osflex-k8s-overlay.name
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
   metadata = {
     hostname = format("ceph%02d", count.index + 1)
@@ -502,11 +502,11 @@ module "ceph-volumes" {
 # Create admin port for bastion node
 resource "openstack_networking_port_v2" "bastion" {
   name               = "bastion"
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-bastion.id]
   fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
@@ -543,12 +543,12 @@ resource "openstack_compute_instance_v2" "bastion" {
 resource "openstack_networking_port_v2" "mlbvips" {
   count              = length(var.mlb_vips)
   name               = format("mlbvip%02d", count.index + 1)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
+  network_id         = openstack_networking_network_v2.osflex-mgmt.id
   admin_state_up     = "true"
   no_security_groups = "true"
 
   fixed_ip {
-    subnet_id  = openstack_networking_subnet_v2.openstack-flex-subnet.id
+    subnet_id  = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
     ip_address = var.mlb_vips[count.index]
   }
 }
