@@ -64,6 +64,12 @@ resource "openstack_networking_secgroup_v2" "secgroup-flex-nodes" {
   name = "openstack-flex-nodes"
 }
 
+## Create management network security group for flex providernet
+# Create sec group
+resource "openstack_networking_secgroup_v2" "secgroup-flex-providernet" {
+  name = "openstack-flex-providernet"
+}
+
 ## Create management network security group node rule for local TCP access
 # Create sec group rule
 resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit-tcp-local" {
@@ -72,6 +78,13 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
   protocol          = "tcp"
   remote_ip_prefix  = "172.31.0.0/22"
+}
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-permit-tcp-local" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
+  protocol          = "tcp"
+  remote_ip_prefix  = "192.168.200.0/23"
 }
 
 ## Create management network security group node rule for local UDP access
@@ -83,6 +96,13 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit
   protocol          = "udp"
   remote_ip_prefix  = "172.31.0.0/22"
 }
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-permit-udp-local" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
+  protocol          = "udp"
+  remote_ip_prefix  = "192.168.200.0/23"
+}
 
 ## Create management network security group node rule for public HTTP access
 # Create sec group rule
@@ -90,6 +110,15 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   direction         = "ingress"
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "tcp"
+  port_range_min    = "80"
+  port_range_max    = "80"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
   protocol          = "tcp"
   port_range_min    = "80"
   port_range_max    = "80"
@@ -107,6 +136,15 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   port_range_max    = "443"
   remote_ip_prefix  = "0.0.0.0/0"
 }
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-https" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
+  protocol          = "tcp"
+  port_range_min    = "443"
+  port_range_max    = "443"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
 
 ## Create management network security group node rule for public icmp echo requests
 # Create sec group rule
@@ -114,6 +152,13 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   direction         = "ingress"
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
+  protocol          = "icmp"
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-ping" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
   protocol          = "icmp"
   remote_ip_prefix  = "0.0.0.0/0"
 }
@@ -140,10 +185,38 @@ resource "openstack_networking_subnet_v2" "osflex-mgmt-subnet" {
   }
 }
 
+## Neutron Provider Network
+# Create Neutron Provider Network
+resource "openstack_networking_network_v2" "osflex-provider" {
+  name                  = "osflex-provider"
+  admin_state_up        = "true"
+  external              = false
+  port_security_enabled = true
+}
+
+# Create Neutron Provider Subnet
+resource "openstack_networking_subnet_v2" "osflex-provider-subnet" {
+  name        = "osflex-provider-subnet"
+  network_id  = openstack_networking_network_v2.osflex-provider.id
+  cidr        = "192.168.200.0/23"
+  ip_version  = 4
+  enable_dhcp = false
+  allocation_pool {
+    start = "192.168.201.1"
+    end   = "192.168.201.64"
+  }
+}
+
 # Create management router interface
 resource "openstack_networking_router_interface_v2" "osflex-router-interface" {
   router_id = openstack_networking_router_v2.osflex-router.id
   subnet_id = openstack_networking_subnet_v2.osflex-mgmt-subnet.id
+}
+
+# Create providernet router interface
+resource "openstack_networking_router_interface_v2" "osflex-router-interface-providernet" {
+  router_id = openstack_networking_router_v2.osflex-router.id
+  subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
 }
 
 ## K8s Overlay Network
@@ -306,7 +379,7 @@ resource "openstack_compute_instance_v2" "openstack-worker" {
   }
 }
 
-# Create network ports for compute nodes
+# Create mgmt-net ports for compute nodes
 resource "openstack_networking_port_v2" "compute-ports" {
   count              = var.compute_count
   name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
@@ -318,6 +391,24 @@ resource "openstack_networking_port_v2" "compute-ports" {
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
+    content {
+      ip_address = allowed_address_pairs.value
+    }
+  }
+}
+
+# Create provider-net ports for compute nodes
+resource "openstack_networking_port_v2" "compute-provider-ports" {
+  count              = var.compute_count
+  name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
+  network_id         = openstack_networking_network_v2.osflex-provider.id
+  admin_state_up     = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-providernet.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
+  }
+  dynamic "allowed_address_pairs" {
+    for_each = toset(var.provider_vips)
     content {
       ip_address = allowed_address_pairs.value
     }
@@ -340,6 +431,9 @@ resource "openstack_compute_instance_v2" "compute-node" {
   network {
     name = openstack_networking_network_v2.osflex-neutron-overlay.name
   }
+  network {
+    port = openstack_networking_port_v2.compute-provider-ports[count.index].id
+  }
   metadata = {
     hostname     = format("compute%02d", count.index + 1)
     group        = "openstack-flex"
@@ -348,7 +442,7 @@ resource "openstack_compute_instance_v2" "compute-node" {
   }
 }
 
-# Create network ports for network nodes
+# Create mgmt-net ports for network nodes
 resource "openstack_networking_port_v2" "network-ports" {
   count              = var.network_count
   name               = format("network%02d.%s", count.index + 1, var.cluster_name)
@@ -360,6 +454,24 @@ resource "openstack_networking_port_v2" "network-ports" {
   }
   dynamic "allowed_address_pairs" {
     for_each = toset(var.mlb_vips)
+    content {
+      ip_address = allowed_address_pairs.value
+    }
+  }
+}
+
+# Create provider-net ports for network nodes
+resource "openstack_networking_port_v2" "network-provider-ports" {
+  count              = var.network_count
+  name               = format("network%02d.%s", count.index + 1, var.cluster_name)
+  network_id         = openstack_networking_network_v2.osflex-provider.id
+  admin_state_up     = "true"
+  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-providernet.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
+  }
+  dynamic "allowed_address_pairs" {
+    for_each = toset(var.provider_vips)
     content {
       ip_address = allowed_address_pairs.value
     }
@@ -381,6 +493,9 @@ resource "openstack_compute_instance_v2" "network-node" {
   }
   network {
     name = openstack_networking_network_v2.osflex-neutron-overlay.name
+  }
+  network {
+    port = openstack_networking_port_v2.network-provider-ports[count.index].id
   }
   metadata = {
     hostname = format("network%02d", count.index + 1)
@@ -538,17 +653,38 @@ resource "openstack_networking_port_v2" "mlbvips" {
   }
 }
 
+# Create network ports for provider_vips
+resource "openstack_networking_port_v2" "providervips" {
+  count              = length(var.provider_vips)
+  name               = format("providervip%02d", count.index + 1)
+  network_id         = openstack_networking_network_v2.osflex-provider.id
+  admin_state_up     = "true"
+  no_security_groups = "true"
+
+  fixed_ip {
+    subnet_id  = openstack_networking_subnet_v2.osflex-provider-subnet.id
+    ip_address = var.provider_vips[count.index]
+  }
+}
+
 # Create floating ip for bastion/jump server
 resource "openstack_networking_floatingip_v2" "bastion" {
   pool    = "PUBLICNET"
   port_id = openstack_networking_port_v2.bastion.id
 }
 
-# Create floating ip for metallb_vip
+# Create floating ips for metallb_vips
 resource "openstack_networking_floatingip_v2" "mlbflips" {
   count   = length(var.mlb_vips)
   pool    = "PUBLICNET"
   port_id = openstack_networking_port_v2.mlbvips[count.index].id
+}
+
+# Create floating ip for provider_vips
+resource "openstack_networking_floatingip_v2" "providerflips" {
+  count   = length(var.provider_vips)
+  pool    = "PUBLICNET"
+  port_id = openstack_networking_port_v2.providervips[count.index].id
 }
 
 output "bastion_flip" {
@@ -557,4 +693,8 @@ output "bastion_flip" {
 
 output "metallb_flips" {
   value = zipmap(var.mlb_vips, openstack_networking_floatingip_v2.mlbflips[*].address)
+}
+
+output "provider_flips" {
+  value = zipmap(var.provider_vips, openstack_networking_floatingip_v2.providerflips[*].address)
 }

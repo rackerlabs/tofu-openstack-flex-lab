@@ -152,8 +152,15 @@ variable "cluster_name" {
   description = "Name of the cluster"
   default = "cluster.local"
 }
+
 variable "mlb_vips" {
   type = list(string)
   description = "VIPs to create for Metal LB, should not overlap with subnet allocation pool!"
   default = ["172.31.3.1", "172.31.3.2", "172.31.3.3"]
+}
+
+variable "provider_vips" {
+  type = list(string)
+  description = "VIPs to create for compute provider network (used for double NAT)"
+  default = ["192.168.200.101", "192.168.200.102", "192.168.200.103"]
 }
