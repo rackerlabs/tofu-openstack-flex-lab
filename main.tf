@@ -403,7 +403,6 @@ resource "openstack_networking_port_v2" "compute-provider-ports" {
   name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.osflex-provider.id
   admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-providernet.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
   }
@@ -460,7 +459,6 @@ resource "openstack_networking_port_v2" "network-provider-ports" {
   name               = format("network%02d.%s", count.index + 1, var.cluster_name)
   network_id         = openstack_networking_network_v2.osflex-provider.id
   admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-providernet.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
   }
