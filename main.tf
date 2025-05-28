@@ -191,7 +191,7 @@ resource "openstack_networking_network_v2" "osflex-provider" {
   name                  = "osflex-provider"
   admin_state_up        = "true"
   external              = false
-  port_security_enabled = true
+  port_security_enabled = false
 }
 
 # Create Neutron Provider Subnet
