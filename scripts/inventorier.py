@@ -18,7 +18,7 @@ storage_prefix = 'storage'
 ceph_prefix = 'ceph'
 cluster_name = 'cluster.local'
 kube_ovn_iface = 'enp4s0'
-mgmt_network = 'openstack-flex'
+mgmt_network = 'osflex-mgmt'
 
 servers = os.list_servers()
 
