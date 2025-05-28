@@ -407,12 +407,6 @@ resource "openstack_networking_port_v2" "compute-provider-ports" {
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
   }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.provider_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
 }
 
 # Create compute nodes
@@ -469,12 +463,6 @@ resource "openstack_networking_port_v2" "network-provider-ports" {
   security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-providernet.id]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.osflex-provider-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.provider_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
   }
 }
 
