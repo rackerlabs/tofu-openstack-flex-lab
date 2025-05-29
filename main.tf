@@ -621,7 +621,7 @@ resource "openstack_networking_floatingip_v2" "mlbflips" {
   port_id = openstack_networking_port_v2.mlbvips[count.index].id
 }
 
-# Create floating ip for provider_vips
+# Create floating ips for provider_vips
 resource "openstack_networking_floatingip_v2" "providerflips" {
   count   = length(var.provider_vips)
   pool    = "PUBLICNET"
