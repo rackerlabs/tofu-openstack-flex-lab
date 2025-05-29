@@ -72,7 +72,7 @@ def inventory_data(servers):
         inventory.add_group(group)
 
     for server in servers:
-        ip_address = server['addresses']['openstack-flex'][0]['addr']
+        ip_address = server['addresses']['osflex-mgmt'][0]['addr']
         host = Host(server.name)
         host.vars = {'ansible_host': ip_address, 'ip': "'{{ ansible_host }}'"}
         if 'role' in server.metadata:
@@ -134,7 +134,7 @@ class LabInventory:
 
     def add_host_to_hostvars(self, server):
         """Adds server to hostvars"""
-        server_ip = server['addresses']['openstack-flex'][0]['addr']
+        server_ip = server['addresses']['osflex-mgmt'][0]['addr']
         self.inventory['_meta']['hostvars'].update({server.name: {'ansible_host': server_ip,
                                                                   'ip': server_ip}})
 
@@ -144,7 +144,7 @@ class LabInventory:
 
     def get_floating_ip_from_server(self, server: Type[openstack.compute.v2.server.Server]) -> str:
         """Gets the floating ip from server.  It will return the first one or none"""
-        for item in server['addresses']['openstack-flex']:
+        for item in server['addresses']['osflex-mgmt']:
             if item['OS-EXT-IPS:type'] == 'floating':
                 return item['addr']
         return None
