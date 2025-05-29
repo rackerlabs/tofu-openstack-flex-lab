@@ -64,12 +64,6 @@ resource "openstack_networking_secgroup_v2" "secgroup-flex-nodes" {
   name = "openstack-flex-nodes"
 }
 
-## Create management network security group for flex providernet
-# Create sec group
-resource "openstack_networking_secgroup_v2" "secgroup-flex-providernet" {
-  name = "openstack-flex-providernet"
-}
-
 ## Create management network security group node rule for local TCP access
 # Create sec group rule
 resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit-tcp-local" {
@@ -78,13 +72,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
   protocol          = "tcp"
   remote_ip_prefix  = "172.31.0.0/22"
-}
-resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-permit-tcp-local" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
-  protocol          = "tcp"
-  remote_ip_prefix  = "192.168.200.0/23"
 }
 
 ## Create management network security group node rule for local UDP access
@@ -96,13 +83,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-permit
   protocol          = "udp"
   remote_ip_prefix  = "172.31.0.0/22"
 }
-resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-permit-udp-local" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
-  protocol          = "udp"
-  remote_ip_prefix  = "192.168.200.0/23"
-}
 
 ## Create management network security group node rule for public HTTP access
 # Create sec group rule
@@ -110,15 +90,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   direction         = "ingress"
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
-  protocol          = "tcp"
-  port_range_min    = "80"
-  port_range_max    = "80"
-  remote_ip_prefix  = "0.0.0.0/0"
-}
-resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-http" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
   protocol          = "tcp"
   port_range_min    = "80"
   port_range_max    = "80"
@@ -136,15 +107,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   port_range_max    = "443"
   remote_ip_prefix  = "0.0.0.0/0"
 }
-resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-https" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
-  protocol          = "tcp"
-  port_range_min    = "443"
-  port_range_max    = "443"
-  remote_ip_prefix  = "0.0.0.0/0"
-}
 
 ## Create management network security group node rule for public icmp echo requests
 # Create sec group rule
@@ -152,13 +114,6 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-flex-node-public
   direction         = "ingress"
   ethertype         = "IPv4"
   security_group_id = openstack_networking_secgroup_v2.secgroup-flex-nodes.id
-  protocol          = "icmp"
-  remote_ip_prefix  = "0.0.0.0/0"
-}
-resource "openstack_networking_secgroup_rule_v2" "secgroup-rule-providernet-public-ping" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  security_group_id = openstack_networking_secgroup_v2.secgroup-flex-providernet.id
   protocol          = "icmp"
   remote_ip_prefix  = "0.0.0.0/0"
 }
