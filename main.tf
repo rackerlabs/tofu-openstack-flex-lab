@@ -218,10 +218,10 @@ resource "openstack_compute_instance_v2" "k8s-controller" {
     port = openstack_networking_port_v2.kubernetes-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname = format("kubernetes%02d", count.index + 1)
@@ -260,10 +260,10 @@ resource "openstack_compute_instance_v2" "openstack-controller" {
     port = openstack_networking_port_v2.controller-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname     = format("controller%02d", count.index + 1)
@@ -302,10 +302,10 @@ resource "openstack_compute_instance_v2" "openstack-worker" {
     port = openstack_networking_port_v2.worker-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname     = format("worker%02d", count.index + 1)
@@ -344,10 +344,10 @@ resource "openstack_compute_instance_v2" "compute-node" {
     port = openstack_networking_port_v2.compute-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname     = format("compute%02d", count.index + 1)
@@ -386,10 +386,10 @@ resource "openstack_compute_instance_v2" "network-node" {
     port = openstack_networking_port_v2.network-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname = format("network%02d", count.index + 1)
@@ -428,10 +428,10 @@ resource "openstack_compute_instance_v2" "storage-node" {
     port = openstack_networking_port_v2.storage-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname     = format("storage%02d", count.index + 1)
@@ -470,10 +470,10 @@ resource "openstack_compute_instance_v2" "ceph-node" {
     port = openstack_networking_port_v2.ceph-ports[count.index].id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-internal.name
+    uuid = openstack_networking_network_v2.openstack-flex-internal.id
   }
   network {
-    name = openstack_networking_network_v2.openstack-flex-compute.name
+    uuid = openstack_networking_network_v2.openstack-flex-compute.id
   }
   metadata = {
     hostname = format("ceph%02d", count.index + 1)
