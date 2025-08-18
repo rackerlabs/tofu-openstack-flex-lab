@@ -5,6 +5,8 @@ runcmd:
   - >
     echo '############################################################\n           welcome to your openstack-flex
     bastion\n############################################################\n' >> /etc/motd
+  - wget -qO -  https://rax.mirror.rackspace.com/ubuntu/rackspace-ubuntu-noble-keyring.gpg | sudo apt-key add -
+  - sudo rm /etc/apt/sources.list.d/holland-obs.list
   - >
     echo ' * kubectl - pending' >> /etc/motd &&
     echo ' * genestack repo - pending' >> /etc/motd &&
