@@ -18,7 +18,7 @@ variable "kubernetes_count" {
 variable "kubernetes_image" {
   type = string
   description = "Image name for kubernetes nodes"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "kubernetes_flavor" {
@@ -36,7 +36,7 @@ variable "network_count" {
 variable "network_image" {
   type = string
   description = "Image name for network nodes"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "network_flavor" {
@@ -54,7 +54,7 @@ variable "controller_count" {
 variable "controller_image" {
   type = string
   description = "Image name for controller"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "controller_flavor" {
@@ -72,7 +72,7 @@ variable "worker_count" {
 variable "worker_image" {
   type = string
   description = "Image name for workers"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "worker_flavor" {
@@ -90,7 +90,7 @@ variable "compute_count" {
 variable "compute_image" {
   type = string
   description = "Image name for compute nodes"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "compute_flavor" {
@@ -108,7 +108,7 @@ variable "storage_count" {
 variable "storage_image" {
   type = string
   description = "Image name for storage nodes"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "storage_flavor" {
@@ -126,7 +126,7 @@ variable "ceph_count" {
 variable "ceph_image" {
   type = string
   description = "Image name for ceph nodes"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "ceph_flavor" {
@@ -138,7 +138,7 @@ variable "ceph_flavor" {
 variable "bastion_image" {
   type = string
   description = "Image name for bastion node"
-  default = "Ubuntu 22.04"
+  default = "Ubuntu 24.04"
 }
 
 variable "bastion_flavor" {
