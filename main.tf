@@ -189,214 +189,85 @@ resource "openstack_compute_keypair_v2" "mykey" {
   public_key = file(var.ssh_public_key_path)
 }
 
-# Create network ports for k8s nodes
-resource "openstack_networking_port_v2" "kubernetes-ports" {
-  count              = var.kubernetes_count
-  name               = format("kubernetes%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
-  admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.mlb_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
-}
-
-# Create kubernetes nodes
-resource "openstack_compute_instance_v2" "k8s-controller" {
-  count       = var.kubernetes_count
-  name        = format("kubernetes%02d.%s", count.index + 1, var.cluster_name)
-  image_name  = var.kubernetes_image
-  flavor_name = var.kubernetes_flavor
-  key_pair    = openstack_compute_keypair_v2.mykey.name
-  network {
-    port = openstack_networking_port_v2.kubernetes-ports[count.index].id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-internal.id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-compute.id
-  }
-  metadata = {
-    hostname = format("kubernetes%02d", count.index + 1)
-    group    = "openstack-flex"
-    cluster_name = var.cluster_name
-    role         = "kubernetes"
-  }
-}
-
-# Create network ports for controller nodes
-resource "openstack_networking_port_v2" "controller-ports" {
-  count              = var.controller_count
-  name               = format("controller%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
-  admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.mlb_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
+module "flex-kubernetes-nodes" {
+  source = "./modules/flex-node"
+  instance-count = var.kubernetes_count
+  instance-role = "kubernetes"
+  flavor-name = var.kubernetes_flavor
+  image-name = var.kubernetes_image
+  cluster-name = var.cluster_name
+  security-group-ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  openstack-flex-network-network-id = openstack_networking_network_v2.openstack-flex.id
+  openstack-flex-subnet-subnet-id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  openstack-flex-network-internal-network-id = openstack_networking_network_v2.openstack-flex-internal.id
+  openstack-flex-network-compute-network-id = openstack_networking_network_v2.openstack-flex-compute.id
+  openstack-keypair-id = openstack_compute_keypair_v2.mykey.id
+  metal_lb_vips = var.mlb_vips
 }
 
 # Create controller nodes
-resource "openstack_compute_instance_v2" "openstack-controller" {
-  count       = var.controller_count
-  name        = format("controller%02d.%s", count.index + 1, var.cluster_name)
-  image_name  = var.controller_image
-  flavor_name = var.controller_flavor
-  key_pair    = openstack_compute_keypair_v2.mykey.name
-  network {
-    port = openstack_networking_port_v2.controller-ports[count.index].id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-internal.id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-compute.id
-  }
-  metadata = {
-    hostname     = format("controller%02d", count.index + 1)
-    group        = "openstack-flex"
-    cluster_name = var.cluster_name
-    role         = "controller"
-  }
-}
-
-# Create network ports for worker nodes
-resource "openstack_networking_port_v2" "worker-ports" {
-  count              = var.worker_count
-  name               = format("worker%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
-  admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.mlb_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
+module "flex-controller-nodes" {
+  source = "./modules/flex-node"
+  instance-count = var.controller_count
+  instance-role = "controller"
+  flavor-name = var.controller_flavor
+  image-name = var.controller_image
+  cluster-name = var.cluster_name
+  security-group-ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  openstack-flex-network-network-id = openstack_networking_network_v2.openstack-flex.id
+  openstack-flex-subnet-subnet-id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  openstack-flex-network-internal-network-id = openstack_networking_network_v2.openstack-flex-internal.id
+  openstack-flex-network-compute-network-id = openstack_networking_network_v2.openstack-flex-compute.id
+  openstack-keypair-id = openstack_compute_keypair_v2.mykey.id
+  metal_lb_vips = var.mlb_vips
 }
 
 # Create worker nodes
-resource "openstack_compute_instance_v2" "openstack-worker" {
-  count       = var.worker_count
-  name        = format("worker%02d.%s", count.index + 1, var.cluster_name)
-  image_name  = var.worker_image
-  flavor_name = var.worker_flavor
-  key_pair    = openstack_compute_keypair_v2.mykey.name
-  network {
-    port = openstack_networking_port_v2.worker-ports[count.index].id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-internal.id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-compute.id
-  }
-  metadata = {
-    hostname     = format("worker%02d", count.index + 1)
-    group        = "openstack-flex"
-    cluster_name = var.cluster_name
-    role         = "worker"
-  }
-}
-
-# Create network ports for compute nodes
-resource "openstack_networking_port_v2" "compute-ports" {
-  count              = var.compute_count
-  name               = format("compute%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
-  admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.mlb_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
+module "flex-worker-nodes" {
+  source = "./modules/flex-node"
+  instance-count = var.worker_count
+  instance-role = "worker"
+  flavor-name = var.worker_flavor
+  image-name = var.worker_image
+  cluster-name = var.cluster_name
+  security-group-ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  openstack-flex-network-network-id = openstack_networking_network_v2.openstack-flex.id
+  openstack-flex-subnet-subnet-id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  openstack-flex-network-internal-network-id = openstack_networking_network_v2.openstack-flex-internal.id
+  openstack-flex-network-compute-network-id = openstack_networking_network_v2.openstack-flex-compute.id
+  openstack-keypair-id = openstack_compute_keypair_v2.mykey.id
 }
 
 # Create compute nodes
-resource "openstack_compute_instance_v2" "compute-node" {
-  count       = var.compute_count
-  name        = format("compute%02d.%s", count.index + 1, var.cluster_name)
-  image_name  = var.compute_image
-  flavor_name = var.compute_flavor
-  key_pair    = openstack_compute_keypair_v2.mykey.name
-  network {
-    port = openstack_networking_port_v2.compute-ports[count.index].id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-internal.id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-compute.id
-  }
-  metadata = {
-    hostname     = format("compute%02d", count.index + 1)
-    group        = "openstack-flex"
-    cluster_name = var.cluster_name
-    role         = "compute"
-  }
-}
-
-# Create network ports for network nodes
-resource "openstack_networking_port_v2" "network-ports" {
-  count              = var.network_count
-  name               = format("network%02d.%s", count.index + 1, var.cluster_name)
-  network_id         = openstack_networking_network_v2.openstack-flex.id
-  admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.openstack-flex-subnet.id
-  }
-  dynamic "allowed_address_pairs" {
-    for_each = toset(var.mlb_vips)
-    content {
-      ip_address = allowed_address_pairs.value
-    }
-  }
+module "flex-compute-nodes" {
+  source = "./modules/flex-node"
+  instance-count = var.compute_count
+  instance-role = "compute"
+  flavor-name = var.compute_flavor
+  image-name = var.compute_image
+  cluster-name = var.cluster_name
+  security-group-ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  openstack-flex-network-network-id = openstack_networking_network_v2.openstack-flex.id
+  openstack-flex-subnet-subnet-id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  openstack-flex-network-internal-network-id = openstack_networking_network_v2.openstack-flex-internal.id
+  openstack-flex-network-compute-network-id = openstack_networking_network_v2.openstack-flex-compute.id
+  openstack-keypair-id = openstack_compute_keypair_v2.mykey.id
 }
 
 # Create network nodes
-resource "openstack_compute_instance_v2" "network-node" {
-  count       = var.network_count
-  name        = format("network%02d.%s", count.index + 1, var.cluster_name)
-  image_name  = var.network_image
-  flavor_name = var.network_flavor
-  key_pair    = openstack_compute_keypair_v2.mykey.name
-  network {
-    port = openstack_networking_port_v2.network-ports[count.index].id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-internal.id
-  }
-  network {
-    uuid = openstack_networking_network_v2.openstack-flex-compute.id
-  }
-  metadata = {
-    hostname = format("network%02d", count.index + 1)
-    group    = "openstack-flex"
-    cluster_name = var.cluster_name
-    role         = "network"
-  }
+module "flex-network-nodes" {
+  source = "./modules/flex-node"
+  instance-count = var.network_count
+  instance-role = "network"
+  flavor-name = var.network_flavor
+  image-name = var.network_image
+  cluster-name = var.cluster_name
+  security-group-ids = [openstack_networking_secgroup_v2.secgroup-flex-nodes.id]
+  openstack-flex-network-network-id = openstack_networking_network_v2.openstack-flex.id
+  openstack-flex-subnet-subnet-id = openstack_networking_subnet_v2.openstack-flex-subnet.id
+  openstack-flex-network-internal-network-id = openstack_networking_network_v2.openstack-flex-internal.id
+  openstack-flex-network-compute-network-id = openstack_networking_network_v2.openstack-flex-compute.id
+  openstack-keypair-id = openstack_compute_keypair_v2.mykey.id
 }
 
 # Create network ports for storage nodes
