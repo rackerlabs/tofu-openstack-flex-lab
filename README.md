@@ -1,35 +1,42 @@
-## openstack-flex-lab
+# openstack-flex-lab
+
 I am using opentofu but I call it terraform alot still :/
 
 This builds out a lab environment as described at https://docs.rackspacecloud.com/ in an already available openstack endpoint. Once tofu has completed you can follow the steps in the linked documentation.
 
-### requirements
+## requirements
 
 - A python virtual environment
 - Install opentofu
 - Install openstackclient
 - Configure $HOME/.config/openstack/clouds.yaml with credentials
 
-### python virtual environment
+## python virtual environment
+
 For later use of they dynamic inventory script a python virtual environment is needed. Create your virtual environment the way you see fit and install the requirements.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### tofu
-Opentofu or terraform is needed to build out the lab environment in an openstack deployment. Installation instructions for opentofu can be found [here](https://opentofu.org/docs/intro/install/).
+## tofu
+
+Opentofu or terraform is needed to build out the lab environment in an openstack deployment. Installation instructions for opentofu can be found at [opentofu docs](https://opentofu.org/docs/intro/install/).
 
 Installing opentofu on a mac:
+
 ```bash
 brew install opentofu
 ```
 
 Once you have opentofu installed initialize it so that required plugins are installed
+
 ```bash
 tofu init --upgrade
 ```
+
 > **ℹ️ Info:** If you encountered the following error on M1 or M2 MacBook you need to follow the steps provided below and use terraform instead of tofu
+
 ```bash
 │ Error: Incompatible provider version
 │
@@ -37,7 +44,9 @@ tofu init --upgrade
 │
 │ Provider releases are separate from OpenTofu CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.
 ```
+
 > steps to resolve the issue:
+
 ```bash
 brew install kreuzwerker/taps/m1-terraform-provider-helper
 m1-terraform-provider-helper install hashicorp/template -v v2.2.0
@@ -73,14 +82,15 @@ clouds:
 The ssh public key path is added to openstack and is required for ssh agent forwarding to be setup.  Specify the path to your public key and you will be good to go.
 
 ### plan/apply
+
 ```bash
 tofu plan -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/.ssh/id_rsa.pub"
 tofu apply -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/.ssh/id_rsa.pub"
 ```
 
-Once you `apply` the tofu config you will be given the ip address of your launcher node.  Also thanks to @luke8738 and some fancy cloudinit configs the launcher nodes has what you need isntalled and you are automatically in the genestack virtualenv.  Log into the launcher node and `cat /etc/motd` for details. 
+Once you `apply` the tofu config you will be given the ip address of your launcher node.  Also thanks to @luke8738 and some fancy cloudinit configs the launcher nodes has what you need isntalled and you are automatically in the genestack virtualenv.  Log into the launcher node and `cat /etc/motd` for details.
 
-#### ssh config to use the gateway
+## ssh config to use the gateway
 
 Once you have deployed the infra, its time to set your private key and use it to connect through the gateway. Add the following to `$HOME/.ssh/config`
 
@@ -99,7 +109,7 @@ Host <YOUR_LAUNCHER_NODE_IP_RANGE>
   ServerAliveInterval 300
 ```
 
-### Prepare for kubespray
+## Prepare for kubespray
 
 The `prepare_for_kubespray.yaml` playbook as the name implies prepare the launcher node to run kubespray.  Inventory based on tofu/terraform, the `genestack_post_deploy.yaml` playbook and helper scripts are all copied to the launcher node.
 
@@ -112,7 +122,8 @@ OS_CLOUD=rxt-sjc-example ansible-playbook -i scripts/lab_inventory.py scripts/pl
 The steps here closely follow the instructions at [genestack getting started](https://docs.rackspacecloud.com/genestack-getting-started/).
 
 From here log into the launcher node to complete the deploy
-```
+
+```bash
 ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
 ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
 cd /opt/genestack/ansible/playbooks && ansible-playbook host-setup.yml
@@ -121,16 +132,16 @@ cd /opt/genestack/submodules/kubespray && ansible-playbook cluster.yml -b -f 30 
 
 The kubespray deploy commonly takes about 30 minutes or so.  Once it is finished a helper script is in place to copy the kubeconfig to the launcher node:
 
-```
+```bash
 get_kube_config.sh
 ```
 
 Now that the kubeconfig is in place run the `genestack_post_deploy.yaml` file as ubuntu in the ubuntu home directory.  It is best to provide the `letsencrypt_email` variable on the command line so the playbook does not stop and prompt you in the middle of the run.
 
-```
+```bash
 ansible-playbook ~/genestack_post_deploy.yaml -e "letsencrypt_email=<VALID EMAIL ADDRESS"
 ```
 
-### Deploying GeneStack
+## Deploying GeneStack
 
 You need to follow the [GeneStack doc](https://docs.rackspacecloud.com/openstack-overview/) from this point.
