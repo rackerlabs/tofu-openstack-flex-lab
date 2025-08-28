@@ -13,7 +13,7 @@ This builds out a lab environment as described at https://docs.rackspacecloud.co
 
 ## python virtual environment
 
-For later use of they dynamic inventory script a python virtual environment is needed. Create your virtual environment the way you see fit and install the requirements.
+For later use of they dynamic inventory script and ansible a python virtual environment is needed. Create your virtual environment the way you see fit and install the requirements.
 
 ```bash
 pip install -r requirements.txt
@@ -27,12 +27,6 @@ Installing opentofu on a mac:
 
 ```bash
 brew install opentofu
-```
-
-Once you have opentofu installed initialize it so that required plugins are installed
-
-```bash
-tofu init --upgrade
 ```
 
 > **ℹ️ Info:** If you encountered the following error on M1 or M2 MacBook you need to follow the steps provided below and use terraform instead of tofu
@@ -56,7 +50,7 @@ terraform init --upgrade
 
 At this point you can plan if you want to see what will be done but ultimatelay you will need to `apply`.  There are two requried variables to be passed:
 
-- `cloud`
+### Cloud endpoint
 
 As mentioned before you need an `$HOME/.config/openstack/clouds.yaml` file configured with an openstack cloud you intend to deploy your lab in.  This cloud is not the region cloud but one that can be used with a rackspace ddi.  Example:
 
@@ -66,29 +60,69 @@ clouds:
     # note: $YOUR_PROJECT is the account DDI with Flex, so XXXXXXX_Flex
     auth:
       auth_url: https://keystone.api.sjc3.rackspacecloud.com/v3
-      project_name: < DDI >_Flex # $YOUR_PROJECT
+      project_name: < YOUR PROJECT NAME>
       project_domain_name: rackspace_cloud_domain
       username: < CLOUD USERNAME >
       password: < CLOUD PASSWORD>
       user_domain_name: rackspace_cloud_domain
-    region_name: SJC3
+    region_name: < REGION NAME >
     interface: public
     identity_api_version: "3"
     insecure: true
 ```
 
-- `ssh_public_key_path`
+Once you have opentofu installed initialize it so that required plugins are installed
 
-The ssh public key path is added to openstack and is required for ssh agent forwarding to be setup.  Specify the path to your public key and you will be good to go.
+```bash
+tofu init --upgrade
+```
+
+At the very minimum you will need to provide  tofu the name of the cloud you are going to use as well as an ssh key for connecting into the launcher instance. This can be provided on the command line like:
+
+```bash
+tofu apply -var "cloud=< CLOUD NAME>" -var "ssh_public_key_path=~/.ssh/id_rsa.pub"
+```
+
+Adding all of the variables on the command line get get onerous. Tofu provides a mechanism to set variables in the `terraform.tfvars` file.
+
+```hcl
+cloud="CLOUD NAME"
+ssh_public_key_path="~/.ssh/id_rsa.pub"
+```
+
+With the variables setup in the `terraform.tfvars` file standing up the environment is as simple as:
+
+```bash
+tofu apply
+```
+
+### Customizing your lab
+
+The defaults setup a reasonably sized small environment to use for testing and
+development. The [variables.tf](variables.tf) contain the variables available
+for use. Using the file `terraform.tfvars` file will allow you to specify
+additional variables to customize the environment that is created. For example,
+you may only want to have three worker nodes and no storage nodes in the
+environment. This can be achieved with the following `terraform.tfvars` file.
+
+```hcl
+cloud="mycloud"
+ssh_public_key_path="~/.ssh/id_rsa.pub"
+worker_count=3
+storage_count=0
+```
 
 ### plan/apply
 
+Now that the `terraform.tfvars` file is setup the environment can be built:
+
 ```bash
-tofu plan -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/.ssh/id_rsa.pub"
-tofu apply -var "cloud=<CLOUD NAME IN clouds.yaml>" -var "ssh_public_key_path=~/.ssh/id_rsa.pub"
+tofu plan
+tofu apply
 ```
 
-Once you `apply` the tofu config you will be given the ip address of your launcher node.  Also thanks to @luke8738 and some fancy cloudinit configs the launcher nodes has what you need isntalled and you are automatically in the genestack virtualenv.  Log into the launcher node and `cat /etc/motd` for details.
+Once you `apply` the tofu config you will be given the floating address of your
+launcher node.
 
 ## ssh config to use the gateway
 
@@ -134,12 +168,6 @@ The kubespray deploy commonly takes about 30 minutes or so.  Once it is finished
 
 ```bash
 get_kube_config.sh
-```
-
-Now that the kubeconfig is in place run the `genestack_post_deploy.yaml` file as ubuntu in the ubuntu home directory.  It is best to provide the `letsencrypt_email` variable on the command line so the playbook does not stop and prompt you in the middle of the run.
-
-```bash
-ansible-playbook ~/genestack_post_deploy.yaml -e "letsencrypt_email=<VALID EMAIL ADDRESS"
 ```
 
 ## Deploying GeneStack

@@ -4,7 +4,7 @@
   tags: setup_hosts_file
   tasks:
     - name: Gather IP address and hostnames of all hosts
-      set_fact:
+      ansible.builtin.set_fact:
         host_entries: |
           {% for item in groups['all'] %}
           {% if hostvars[item].ansible_host is defined %}
@@ -32,6 +32,19 @@
       delegate_to: localhost
       register: inventory_result
       changed_when: false
+
+    - name: Create genestack directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        owner: "ubuntu"
+        group: "ubuntu"
+        mode: "755"
+        state: "directory"
+      loop:
+        - "/etc/genestack"
+        - "/etc/genestack/inventory"
+      become: true
+
     - name: Add genestack inventory
       ansible.builtin.copy:
         dest: /etc/genestack/inventory/inventory.yaml
@@ -42,6 +55,21 @@
   hosts: flex_launcher
   tags: post_deploy_playbook
   tasks:
+    - name: Get kubectl
+      ansible.builtin.get_url:
+        dest: "/usr/local/bin/kubectl"
+        url: "https://dl.k8s.io/release/v1.33.0/bin/linux/amd64/kubectl"
+        checksum: "sha256:https://dl.k8s.io/release/v1.33.0/bin/linux/amd64/kubectl.sha256"
+        owner: "root"
+        group: "root"
+        mode: "0755"
+      become: true
+
+    - name: Install k9s
+      ansible.builtin.apt:
+        deb: https://github.com/derailed/k9s/releases/download/v0.50.9/k9s_linux_amd64.deb
+      become: true
+
     - name: Get cluster setup script
       ansible.builtin.copy:
         dest: /usr/local/bin/genestack_deploy_cluster.sh
@@ -55,3 +83,73 @@
         src: get_kube_config.sh
         mode: "0755"
       become: true
+
+    - name: Create genestack directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        owner: "ubuntu"
+        group: "ubuntu"
+        mode: "755"
+        state: "directory"
+      loop:
+        - "/opt/genestack"
+        - "/opt/flex-utils"
+        - "/opt/overrides"
+        - "/etc/genestack"
+      become: true
+
+    - name: Clone genestack # noqa: latest
+      ansible.builtin.git:
+        repo: "git@github.com:rackerlabs/genestack.git"
+        # dest: "/home/ubuntu/genestack"
+        dest: "/opt/genestack"
+        accept_newhostkey: true
+        version: main
+        update: false
+      tags: clone
+      become: false
+
+    # If you have additional playbooks or scripts in a repo it can set with the
+    # repo can be set with the utils_repo var
+    - name: Clone utils repo # noqa: latest
+      ansible.builtin.git:
+        repo: "{{ utils_repo }}"
+        dest: "/opt/flex-utils"
+        accept_newhostkey: true
+        update: false
+      when: utils_repo is defined
+
+    - name: Clone overrides # noqa: latest
+      ansible.builtin.git:
+        repo: "{{ overrides_repo }}"
+        dest: "/opt/overrides"
+        accept_newhostkey: true
+        update: false
+      when: overrides_repo is defined
+
+    - name: Symlink overrides
+      ansible.builtin.file:
+        src: "{{ item.link_src }}"
+        dest: "{{ item.link_dest }}"
+        state: link
+      loop:
+        - { link_src: "/opt/overrides/helm-configs/", link_dest: "/etc/genestack/helm-configs"}
+        - { link_src: "/opt/overrides/kustomize/", link_dest: "/etc/genestack/kustomize"}
+        - { link_src: "/opt/overrides/manifests/", link_dest: "/etc/genestack/manifests"}
+        - { link_src: "/opt/overrides/group_vars/", link_dest: "/etc/genestack/inventory/group_vars"}
+      when: overrides_repo is defined
+
+    - name: Run bootstrap.sh
+      ansible.builtin.shell: # noqa:  command-instead-of-shell
+      # This needs to run as shell and not cmd module
+        cmd: /opt/genestack/bootstrap.sh
+      environment:
+        GENESTACK_PRODUCT: "openstack-flex"
+      become: true
+      become_flags: "-E"
+
+    - name: Activate genestack virtual env at login
+      ansible.builtin.lineinfile:
+        path: "/home/ubuntu/.bashrc"
+        line: "source /opt/genestack/scripts/genestack.rc"
+        insertafter: EOF

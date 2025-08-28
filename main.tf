@@ -407,7 +407,7 @@ resource "openstack_compute_instance_v2" "bastion" {
     # Ip addresses in a format for adding to k8s IPAddressPool
     metallb_flips = jsonencode([for ip in var.mlb_vips : "${ip}/32"])
   }
-  user_data = data.template_file.cloudinit.rendered
+  # user_data = data.template_file.cloudinit.rendered
 }
 
 # Create network port for metallb_vips
