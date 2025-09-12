@@ -159,18 +159,11 @@
   hosts: all:!flex_launcher
   tags: longhorn
   tasks:
-    - name: Create longhorn directory in /mnt
+    - name: Create longhorn directory
       ansible.builtin.file:
-        dest: "/mnt/longhorn"
+        dest: "/var/lib/longhorn"
         owner: "ubuntu"
         group: "ubuntu"
         state: directory
+        mode: "0755"
       become: true
-
-    - name: Symlink longhorn directory
-      ansible.builtin.file:
-        src: "/mnt/longhorn"
-        dest: "/var/lib/longhorn"
-        state: link
-      become: true
-
