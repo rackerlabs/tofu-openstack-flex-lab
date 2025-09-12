@@ -79,6 +79,10 @@ inventory = {
                     host[0]: None
                     for host in hosts if host[0].startswith(controller_prefix)
                 }},
+                'kubernetes_worker': {'hosts': {
+                    host[0]: None
+                    for host in hosts if host[0].startswith(worker_prefix)
+                }},
                 'ovn_network_nodes': {'hosts': {
                     host[0]: None
                     for host in hosts if host[0].startswith(network_prefix)
