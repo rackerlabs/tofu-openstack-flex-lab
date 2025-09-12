@@ -158,10 +158,11 @@ The steps here closely follow the instructions at [genestack getting started](ht
 From here log into the launcher node to complete the deploy
 
 ```bash
+source /opt/genestack/scripts/genestack.rc
 ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
 ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
 cd /opt/genestack/ansible/playbooks && ansible-playbook host-setup.yml
-cd /opt/genestack/submodules/kubespray && ansible-playbook cluster.yml -b -f 30 -T 30
+cd /opt/genestack/submodules/kubespray && sudo -E /home/ubuntu/.venvs/genestack/bin/ansible-playbook cluster.yml -b -f 30 -T 30 -u ubuntu
 ```
 
 The kubespray deploy commonly takes about 30 minutes or so.  Once it is finished a helper script is in place to copy the kubeconfig to the launcher node:
